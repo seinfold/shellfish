@@ -27,7 +27,7 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 | **wget** | Alternate download utility for environments without curl |
 | **python3** | Runtime for repo_fuse/gitget helper scripts |
 | **GNU screen** | Terminal multiplexer keeping long-running sessions alive |
-| **irssi** *(optional)* | IRC client you can run inside screen |
+| **irssi** *(optional)* | IRC client you can run inside screen (if you opt in during setup) |
 | **gh** *(optional)* | GitHub CLI for repo listing and SSH auth checks |
 | **unzip** | Required to unpack font archives |
 | **JetBrainsMono Nerd Font Light** | Installed automatically so Fish icons render correctly (keep your terminal on this font or another Nerd Font) |
@@ -45,7 +45,7 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 | `scr` / `screens` | `~/.config/fish/functions/scr.fish`, `screens.fish` | Create/attach named GNU screen sessions with optional logging |
 | Fish prompt/theme | `~/.config/fish/config.fish` | Custom prompt, vi-mode badge, colour scheme, ASCII shellfish greeting |
 | SSH template | `~/.ssh/config` (optional) | GitHub entry + interactive shortcut builder |
-| Repo manifest | `~/.config/fish/repos/catalog.toml` | Sample entries for `repo_fuse` |
+| Repo manifest | `~/.config/fish/repos/catalog.toml` | Sample entries for `repo_fuse` (optional to maintain) |
 
 Shellfish records every file it touches in `~/.local/share/shellfish/managed_files.txt`. Re-running `./shellfish.sh` spots existing backups and offers to roll everything back first.
 
@@ -63,12 +63,36 @@ chmod +x shellfish.sh
 ### During setup you will be asked about
 
 1. **GitHub support** – configure `gitget`/`repo_fuse` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
-2. **irssi** – choose whether to install the IRC client; if enabled you can pick a default network (ircnet/libera/oftc/efnet/custom).
-3. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
+1. **irssi** – choose whether to install the IRC client; if enabled you can pick a default network (ircnet/libera/oftc/efnet/custom).
+1. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
 
-Shellfish automatically replaces `~/.bashrc` (with a timestamped backup) and installs JetBrainsMono Nerd Font Light.
+Shellfish automatically replaces `~/.bashrc` (with a timestamped backup) and installs JetBrainsMono Nerd Font Light. GNU screen is part of the default install; irssi is optional.
 
 If backups from a previous run exist, Shellfish offers to restore everything before continuing.
+
+---
+
+## Catalog vs GitHub mode (repo_fuse & gitget)
+
+Shellfish ships with an example catalog at `~/.config/fish/repos/catalog.toml`, but **you do not have to maintain it**. repo_fuse and gitget work three ways:
+
+1. **GitHub mode (default during setup)** – Shellfish wires `gitget` + `repo_fuse` to your GitHub account via the `gh` CLI. Running `gitget --list` or `repo_fuse --source github --list` pulls live repositories without touching the catalog.
+2. **Catalog mode** – edit `catalog.toml` when you want extra automation (setup commands, descriptions, grouping). Each `[[repo]]` block contains `name`, `url`, optional `branch`, and optional `setup` array. repo_fuse reads those entries when you run `repo_fuse --manifest ~/.config/fish/repos/catalog.toml` (or simply `repo_fuse` if you keep the defaults).
+3. **Mix and match** – keep the catalog for curated projects while still using GitHub mode for everything else (`repo_fuse --source github` or `gf --list` after choosing GitHub mode).
+
+Example catalog entry:
+```toml
+[[repo]]
+name = "blog"
+description = "Astro personal site"
+url = "git@github.com:seinfold/blog.git"
+setup = [
+  "pnpm install",
+  "pnpm dev -- --open"
+]
+```
+
+When you run `repo_fuse blog`, Shellfish clones the repo, runs the `setup` commands, logs the run, and records history. If you prefer GitHub mode, `repo_fuse --source github` (or the GitHub option during the menu) bypasses the catalog entirely.
 
 ---
 
@@ -101,7 +125,7 @@ If backups from a previous run exist, Shellfish offers to restore everything bef
 
 ## Optional follow-ups
 
-- Replace the manifest entries in `~/.config/fish/repos/catalog.toml` with your real projects.
+- Replace the manifest entries in `~/.config/fish/repos/catalog.toml` with your real projects (if you want curated automation).
 - Customize `~/.config/fish/functions/gameserver.fish` with your favourite SSH shortcut.
 - Bind `Ctrl+S` to the screen list: `bind \cs 'screens\n'` in `config.fish`.
 - Install other tooling you skipped (Node.js, bun, Docker, VS Code, etc.).
