@@ -4,7 +4,7 @@
 - **Version:** 1.0.0
 - **Author:** seinfold
 - **License:** MIT (see `LICENSE`)
-- **Credits:** Fish shell, GitHub CLI, zoxide, GNU screen, Bun completion contributors
+- **Credits:** Fish shell, eza, tree, fzf, neofetch, zoxide, GNU screen, irssi, GitHub CLI, JetBrainsMono Nerd Font (Nerd Fonts project), Bun completion contributors
 
 Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session installs the essentials, locks in high-contrast fonts/icons, and leaves your shell tidy with backups.
 
@@ -38,21 +38,31 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 
 ## Shellfish customisations
 
-| Helper | Location | Summary |
-|--------|----------|---------|
-| `gg` (`gitget`) | Fish abbreviation | Quickly run gitget without typing full command
-| `gf` / `rf` | Fish abbreviations | Shortcuts for repo_fuse (alias to gf/rf)
-| `gitget` (`gg`) | `~/.config/fish/functions/gitget.fish` | Lists GitHub repos as `name.git`, clone by name or index, numbered picker
-| `gg` (`gitget`) | Fish abbreviation | Quickly run gitget without typing full command
-| `gf` / `rf` | Fish abbreviations | Shortcuts for repo_fuse (alias to gf/rf)
+Shellfish installs several Fish helpers and abbreviations. Use this quick guide:
 
-|--------|----------|---------|
-| `gitget` (`gg`) | `~/.config/fish/functions/gitget.fish` | Lists GitHub repos as `name.git`, clone by name or index, numbered picker |
-| `repo_fuse` (`gf` / `rf`) | `~/.config/fish/functions/repo_fuse.fish` | Clone + run manifest setup commands with logging/history |
-| `scr` / `screens` | `~/.config/fish/functions/scr.fish`, `screens.fish` | Create/attach named GNU screen sessions with optional logging |
-| Fish prompt/theme | `~/.config/fish/config.fish` | Custom prompt, vi-mode badge, colour scheme, ASCII shellfish greeting |
-| SSH template | `~/.ssh/config` (optional) | GitHub entry + interactive shortcut builder |
-| Repo manifest | `~/.config/fish/repos/catalog.toml` | Sample entries for `repo_fuse` (optional to maintain) |
+- **`gg` → `gitget`** — fuzzy list or clone GitHub repositories.
+  ```fish
+  gg --list
+  gg repo-name.git          # clone a specific repo
+  gg 3                      # clone the 3rd entry from the list
+  ```
+
+- **`gf` / `rf` → `repo_fuse`** — curated clone + setup from the manifest or GitHub.
+  ```fish
+  gf --list                 # list manifest entries
+  gf sample-service         # clone + run setup commands
+  gf --source github --list # browse live GitHub repositories
+  ```
+
+- **`scr NAME` / `scr NAME log`** — create or attach a GNU screen session (with logging when requested). Detach with `Ctrl-A D`.
+
+- **`screens`** — list available GNU screen sessions with usage hints.
+
+- **`irc`** — start or reattach the `screen` + `irssi` session using the network you selected during setup (falls back to a warning if screen/irssi aren’t installed).
+
+- **`stay <command>`** — run a long task detached from the terminal (`nohup` wrapper defined in `config.fish`).
+
+Other niceties: `ls` is aliased to `eza --icons`, and `treelist` runs `tree -a -I '.git'` for a quick project overview.
 
 Shellfish records every file it touches in `~/.local/share/shellfish/managed_files.txt`. Re-running `./shellfish.sh` spots existing backups and offers to roll everything back first.
 
