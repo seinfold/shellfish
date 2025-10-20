@@ -5,12 +5,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 SHELLFISH_VERSION="1.0.0"
 
-read -r -d '' SHELLFISH_ASCII <<'EOF'
+SHELLFISH_ASCII="$(cat <<'EOF'
       __
   ><((__o   shellfish
       )     terminal toolkit
      ((
 EOF
+)"
 
 STATE_DIR="$HOME/.local/share/shellfish"
 MANIFEST_FILE="$STATE_DIR/managed_files.txt"
