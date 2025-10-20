@@ -4,6 +4,16 @@ alias ls "eza --icons"
 alias treelist "tree -a -I '.git'"
 
 function irc
+  if not type -q screen
+    echo "Shellfish: GNU screen is not installed; install it to use this helper." >&2
+    return 1
+  end
+
+  if not type -q irssi
+    echo "Shellfish: irssi is not installed. Run 'screen -S irc irssi' after installing irssi." >&2
+    return 1
+  end
+
   set -l sessions (screen -ls ^/dev/null; or true)
   set -l has_session no
   if string match -q '*\.irc*' $sessions
@@ -13,7 +23,7 @@ function irc
   if test "$has_session" = yes
     screen -x irc
   else
-    screen -S irc irssi -c ircnet
+    screen -S irc irssi -c __SHELLFISH_IRC_NETWORK__
   end
 end
 

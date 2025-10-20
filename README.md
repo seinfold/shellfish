@@ -17,8 +17,8 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 | **eza**, **tree**, **fzf**, **neofetch** | Enhanced listing, directory trees, fuzzy search, system summary |
 | **zoxide** | `z` / `zi` smart directory jumps |
 | **git**, **curl**, **wget**, **python3** | Base developer tooling required by the helpers |
-| **GNU screen** *(optional)* | Persistent terminal windows for servers, monitoring, long-running tasks |
-| **irssi** *(optional)* | IRC client (runs nicely inside screen but optional at the same prompt) |
+| **GNU screen** | Persistent terminal windows for servers, monitoring, long-running tasks |
+| **irssi** *(optional)* | IRC client (runs nicely inside screen but optional) |
 | **gh** *(optional)* | GitHub CLI for repo listing/auth |
 | **unzip** | Needed to unpack optional fonts |
 | **JetBrainsMono Nerd Font Light** *(optional)* | Nerd-font glyph support for your terminal/editor |
@@ -56,11 +56,10 @@ chmod +x shellfish.sh
 ### During setup you will be asked about
 
 1. **GitHub support** – configure `gitget`/`repo_fuse` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
-2. **GNU screen** – install the terminal multiplexer used by `scr`/`screens` for detached sessions.
-3. **irssi** – optional IRC client if you plan to chat from screen while the session manager is already installed.
-4. **Shell prompt** – optionally replace `~/.bashrc` (Shellfish backs up the original to `.bashrc.<timestamp>.bak`).
-5. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
-6. **JetBrainsMono Nerd Font Light** – download to `~/.local/share/fonts/JetBrainsMonoNerd` and refresh `fc-cache`.
+1. **irssi** – optional IRC client to pair with screen; if enabled you can choose a default IRC network.
+1. **Shell prompt** – optionally replace `~/.bashrc` (Shellfish backs up the original to `.bashrc.<timestamp>.bak`).
+1. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
+1. **JetBrainsMono Nerd Font Light** – download to `~/.local/share/fonts/JetBrainsMonoNerd` and refresh `fc-cache`.
 
 If backups from a previous run exist, Shellfish offers to restore everything before continuing.
 

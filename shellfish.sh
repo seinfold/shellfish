@@ -286,9 +286,9 @@ main() {
     use_github="$(normalize_answer "$answer")"
 
     echo
-    echo "Shellfish ships an IRC toolkit (GNU screen + irssi) for the scr/screens helpers."
-    read -rp "Install IRC tooling (screen + irssi)? [Y/n] " answer
-    local install_irc
+    echo "Shellfish ships GNU screen by default; optionally add irssi for chat."
+    local install_irc="n"
+    read -rp "Install irssi (IRC client)? [Y/n] " answer
     install_irc="$(normalize_answer "$answer")"
 
     echo
@@ -298,17 +298,39 @@ main() {
     local install_font
     install_font="$(normalize_answer "$answer")"
 
+    local irc_network="ircnet"
+    if [[ "$install_irc" == "y" ]]; then
+        echo
+        echo "Choose the default irc helper network (used with 'irssi -c <network>')."
+        echo "  1) ircnet"
+        echo "  2) libera"
+        echo "  3) oftc"
+        echo "  4) efnet"
+        echo "  5) Custom"
+        read -rp "Selection [1]: " choice
+        case "${choice:-1}" in
+            2) irc_network="libera" ;;
+            3) irc_network="oftc" ;;
+            4) irc_network="efnet" ;;
+            5)
+                read -rp "Enter custom irssi network name: " custom_net
+                if [[ -n "$custom_net" ]]; then
+                    irc_network="$custom_net"
+                fi
+            ;;
+            *) irc_network="ircnet" ;;
+        esac
+    fi
+
     local packages=(
         fish git curl wget python3 python3-pip python3-venv
-        eza tree zoxide fzf neofetch unzip
+        eza tree zoxide fzf neofetch unzip screen
     )
     if [[ "$use_github" == "y" ]]; then
         packages+=(gh)
     fi
     if [[ "$install_irc" == "y" ]]; then
-        packages+=(screen irssi)
-    else
-        warn "Skipping screen/irssi; note that the scr/screens helpers require GNU screen."
+        packages+=(irssi)
     fi
 
     if [[ "$dry_run" == "n" ]]; then
@@ -344,6 +366,17 @@ main() {
         copy_file "$SCRIPT_DIR/fish/repos/catalog.toml" "$HOME/.config/fish/repos/catalog.toml"
     else
         info "Dry run: would copy Fish configuration files."
+    fi
+
+    if [[ "$dry_run" == "n" ]]; then
+        if grep -q "__SHELLFISH_IRC_NETWORK__" "$HOME/.config/fish/config.fish"; then
+            sed -i "s/__SHELLFISH_IRC_NETWORK__/$irc_network/" "$HOME/.config/fish/config.fish"
+        else
+            sed -i "s/irssi -c .*/irssi -c $irc_network/" "$HOME/.config/fish/config.fish"
+        fi
+        info "Set default irc helper network to '$irc_network'"
+    else
+        info "Dry run: would configure irc helper to use '$irc_network'"
     fi
 
     if [[ -f "$SCRIPT_DIR/bash/.bashrc" ]]; then
