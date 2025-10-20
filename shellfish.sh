@@ -544,24 +544,25 @@ main() {
         fi
     fi
 
-    if [[ "${CHSH_DONE:-0}" -eq 0 ]]; then
-        if command -v fish >/dev/null 2>&1; then
-            local current_shell
-            current_shell="$(basename "${SHELL:-}")"
-            if [[ "$current_shell" != "fish" ]]; then
-                read -rp "Set fish as your default shell? [y/N] " set_default
-                if [[ "$(normalize_answer "$set_default")" == "y" ]]; then
-                    if [[ "$dry_run" == "n" ]]; then
-                        chsh -s "$(command -v fish)"
-                        info "Default shell changed to fish. Log out and back in to apply."
-                    else
-                        info "Dry run: would run chsh to set fish as default shell."
-                    fi
+    if command -v fish >/dev/null 2>&1; then
+        local current_shell
+        current_shell="$(basename "${SHELL:-}")"
+        if [[ "$current_shell" != "fish" ]]; then
+            if [[ "$dry_run" == "n" ]]; then
+                info "Setting fish as the default shell (was $current_shell)."
+                if chsh -s "$(command -v fish)"; then
+                    info "Default shell changed to fish. Log out and back in to apply."
+                else
+                    warn "Could not change default shell automatically; run 'chsh -s $(command -v fish)' manually."
                 fi
+            else
+                info "Dry run: would run chsh -s $(command -v fish)."
             fi
         fi
-        export CHSH_DONE=1
+    else
+        warn "fish executable not found; cannot change default shell."
     fi
+
 
     echo
     echo "Next steps:"
