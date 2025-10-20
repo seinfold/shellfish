@@ -14,12 +14,10 @@ Re-running `./shellfish.sh` later will detect existing backups and offer to reve
 ## 1. Download the kit
 
 ```bash
-git clone https://github.com/<your-user>/shellfish.git ~/shellfish
+git clone https://github.com/seinfold/shellfish.git ~/shellfish
 cd ~/shellfish
 chmod +x shellfish.sh
 ```
-
-Replace `<your-user>` with the GitHub account that hosts this repo. The repo can live anywhere; cloning to `~/shellfish` keeps the instructions simple.
 
 ## 2. Launch the installer
 
