@@ -584,6 +584,21 @@ main() {
 
     printf "\n%s\n" "$SHELLFISH_ASCII"
     info "Shellfish v${SHELLFISH_VERSION} complete. Happy hacking!"
+
+    if [[ "$dry_run" == "n" ]]; then
+        read -rp "Remove the installer directory $(pwd) now? [y/N] " cleanup
+        if [[ "$(normalize_answer "$cleanup")" == "y" ]]; then
+            local install_dir="$(pwd)"
+            local parent_dir="$(dirname "$install_dir")"
+            cd "$HOME"
+            if rm -rf "$install_dir"; then
+                info "Removed $install_dir"
+                cd "$parent_dir" 2>/dev/null || true
+            else
+                warn "Could not remove $install_dir automatically; delete it manually if desired."
+            fi
+        fi
+    fi
 }
 
 main "$@"
