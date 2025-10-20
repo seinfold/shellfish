@@ -292,11 +292,8 @@ main() {
     install_irc="$(normalize_answer "$answer")"
 
     echo
-    echo "Shellfish can install JetBrainsMono Nerd Font (Light variants) locally for crisp icons."
-    echo "Fonts are copied to ~/.local/share/fonts and available system-wide for your user."
-    read -rp "Install JetBrainsMono Nerd Font Light? [Y/n] " answer
-    local install_font
-    install_font="$(normalize_answer "$answer")"
+    echo "JetBrainsMono Nerd Font Light is required for Shellfish icons and will be installed automatically."
+    local install_font="y"
 
     local irc_network="ircnet"
     if [[ "$install_irc" == "y" ]]; then
@@ -339,14 +336,12 @@ main() {
         info "Dry run: would install packages: ${packages[*]}"
     fi
 
-    if [[ "$install_font" == "y" ]]; then
-        if [[ "$dry_run" == "n" ]]; then
-            if ! install_nerd_font; then
-                warn "JetBrainsMono Nerd Font installation encountered issues."
-            fi
-        else
-            info "Dry run: would install JetBrainsMono Nerd Font Light to ~/.local/share/fonts."
+    if [[ "$dry_run" == "n" ]]; then
+        if ! install_nerd_font; then
+            warn "JetBrainsMono Nerd Font installation encountered issues."
         fi
+    else
+        info "Dry run: would install JetBrainsMono Nerd Font Light to ~/.local/share/fonts."
     fi
 
     if [[ "$dry_run" == "n" ]]; then
@@ -379,20 +374,11 @@ main() {
         info "Dry run: would configure irc helper to use '$irc_network'"
     fi
 
-    if [[ -f "$SCRIPT_DIR/bash/.bashrc" ]]; then
-        echo
-        echo "Shellfish can replace ~/.bashrc with its tuned prompt."
-        echo "A timestamped backup (.bashrc.${TIMESTAMP}.bak) will be created before overwriting."
-        read -rp "Replace ~/.bashrc with the Shellfish version? [y/N] " replace_bash
-        if [[ "$(normalize_answer "$replace_bash")" == "y" ]]; then
-            if [[ "$dry_run" == "n" ]]; then
-                copy_file "$SCRIPT_DIR/bash/.bashrc" "$HOME/.bashrc" 644
-            else
-                info "Dry run: would update ~/.bashrc and create a backup."
-            fi
-        else
-            info "Skipped .bashrc update."
-        fi
+    if [[ "$dry_run" == "n" ]]; then
+        copy_file "$SCRIPT_DIR/bash/.bashrc" "$HOME/.bashrc" 644
+        info "~/.bashrc replaced; original backed up with timestamp."
+    else
+        info "Dry run: would replace ~/.bashrc and create a timestamped backup."
     fi
 
     if [[ "$dry_run" == "n" ]]; then
