@@ -1,16 +1,30 @@
 function scr --description 'create/attach a GNU screen session by name, with optional logging'
-    test (count $argv) -lt 1; and begin
-        echo "scr NAME [log]"; return 2
+    if test (count $argv) -lt 1
+        echo "scr NAME [log]"
+        return 2
     end
 
     set -l name $argv[1]
     set -l want_log 0
-    if test (count $argv) -ge 2; and test "$argv[2]" = "log"
-        set want_log 1
+    if test (count $argv) -ge 2
+        if test "$argv[2]" = "log"
+            set want_log 1
+        end
     end
 
-    if screen -ls ^/dev/null | awk '/\t/ {split($1,a,"."); print a[2]}' | grep -x -- $name >/dev/null
-        exec screen -x -r $name
+    set -l existing
+    for line in (screen -ls 2>/dev/null)
+        if string match -qr '^[0-9]+\.[^ ]+' -- $line
+            set parts (string split '.' $line)
+            if test (count $parts) -ge 2
+                set -a existing $parts[2]
+            end
+        end
+    end
+
+    if contains -- $name $existing
+        command screen -x -r $name
+        return $status
     end
 
     if test $want_log -eq 1
@@ -18,8 +32,8 @@ function scr --description 'create/attach a GNU screen session by name, with opt
         mkdir -p $dir
         set -l ts (date "+%Y%m%d-%H%M%S")
         set -l file "$dir/$name-$ts.log"
-        exec screen -S $name -L -Logfile $file
+        command screen -S $name -L -Logfile $file
     else
-        exec screen -S $name
+        command screen -S $name
     end
 end
