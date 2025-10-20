@@ -78,7 +78,7 @@ set fish_greeting (string join ' ' \
   (set_color normal))
 
 if status is-interactive
-  printf '\n      __\n  ><((__o   shellfish\n      )     terminal toolkit\n     ((\n\n'
+  printf '\n      __\n  ><((__o  shellfish is now guarding your loot\n\n'
 end
 
 function fish_user_key_bindings
