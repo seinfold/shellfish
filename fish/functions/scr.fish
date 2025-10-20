@@ -12,28 +12,20 @@ function scr --description 'create/attach a GNU screen session by name, with opt
         end
     end
 
-    set -l existing
-    for line in (screen -ls 2>/dev/null)
-        if string match -qr '^[0-9]+\.[^ ]+' -- $line
-            set parts (string split '.' $line)
-            if test (count $parts) -ge 2
-                set -a existing $parts[2]
-            end
-        end
-    end
-
-    if contains -- $name $existing
-        command screen -x -r $name
-        return $status
-    end
-
+    set -l cmd "screen -S '$name' -D -RR"
     if test $want_log -eq 1
         set -l dir ~/Documents/logs
         mkdir -p $dir
         set -l ts (date "+%Y%m%d-%H%M%S")
         set -l file "$dir/$name-$ts.log"
-        command screen -S $name -L -Logfile $file
+        set cmd "screen -S '$name' -D -RR -L -Logfile '$file'"
+    end
+
+    if type -q gnome-terminal
+        command gnome-terminal -- bash -lc "$cmd"
+    else if type -q xterm
+        command xterm -e $cmd
     else
-        command screen -S $name
+        command screen -S $name -D -RR
     end
 end
