@@ -40,6 +40,13 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 
 | Helper | Location | Summary |
 |--------|----------|---------|
+| `gg` (`gitget`) | Fish abbreviation | Quickly run gitget without typing full command
+| `gf` / `rf` | Fish abbreviations | Shortcuts for repo_fuse (alias to gf/rf)
+| `gitget` (`gg`) | `~/.config/fish/functions/gitget.fish` | Lists GitHub repos as `name.git`, clone by name or index, numbered picker
+| `gg` (`gitget`) | Fish abbreviation | Quickly run gitget without typing full command
+| `gf` / `rf` | Fish abbreviations | Shortcuts for repo_fuse (alias to gf/rf)
+
+|--------|----------|---------|
 | `gitget` (`gg`) | `~/.config/fish/functions/gitget.fish` | Lists GitHub repos as `name.git`, clone by name or index, numbered picker |
 | `repo_fuse` (`gf` / `rf`) | `~/.config/fish/functions/repo_fuse.fish` | Clone + run manifest setup commands with logging/history |
 | `scr` / `screens` | `~/.config/fish/functions/scr.fish`, `screens.fish` | Create/attach named GNU screen sessions with optional logging |
