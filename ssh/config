@@ -1,0 +1,8 @@
+# Example entry forcing GitHub to use the toolkit's SSH key.
+Host github.com
+  User git
+  HostName github.com
+  IdentityFile ~/.ssh/id_ed25519_github
+  IdentitiesOnly yes
+
+# Add your own hosts below or let shellfish.sh append them interactively.
