@@ -102,25 +102,72 @@ has_shellfish_backups() {
 }
 
 restore_shellfish() {
-    local file
-    local restored=0
+    local file latest restored=0
     for file in "${MANAGED_PATHS[@]}"; do
-        local latest
-        latest=$(ls -t "${file}"."*".bak 2>/dev/null | head -n1 || true)
+        latest=$(ls -t "${file}".*.bak 2>/dev/null | head -n1 || true)
         if [[ -n "$latest" ]]; then
             mkdir -p "$(dirname "$file")"
             cp -f "$latest" "$file"
             info "Restored $file from $(basename "$latest")"
             restored=1
+        else
+            if [[ -e "$file" ]]; then
+                if [[ -d "$file" ]]; then
+                    rm -rf "$file"
+                    info "Removed Shellfish-managed directory $file"
+                else
+                    rm -f "$file"
+                    info "Removed Shellfish-managed file $file"
+                fi
+                restored=1
+            fi
         fi
     done
     if (( restored )); then
         rm -f "$MANIFEST_FILE"
-        info "Restoration complete. Backups remain on disk in case you need them again."
+        info "Restoration complete. Backups (if any) remain on disk for manual reference."
     else
-        warn "No Shellfish backups found to restore."
+        warn "No Shellfish changes found to restore."
     fi
     return $restored
+}
+
+install_nerd_font() {
+    local fonts_root="$HOME/.local/share/fonts"
+    local fonts_dir="$fonts_root/JetBrainsMonoNerd"
+    local url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip"
+    local tmp_dir archive
+
+    tmp_dir=$(mktemp -d) || return 1
+    archive="$tmp_dir/JetBrainsMono.zip"
+
+    if command -v curl >/dev/null 2>&1; then
+        if ! curl -fsSL "$url" -o "$archive"; then
+            warn "Downloading Nerd Font archive failed."; rm -rf "$tmp_dir"; return 1
+        fi
+    elif command -v wget >/dev/null 2>&1; then
+        if ! wget -q "$url" -O "$archive"; then
+            warn "Downloading Nerd Font archive failed."; rm -rf "$tmp_dir"; return 1
+        fi
+    else
+        warn "Neither curl nor wget available; cannot download Nerd Font."; rm -rf "$tmp_dir"; return 1
+    fi
+
+    mkdir -p "$fonts_dir"
+    if ! unzip -o "$archive" -d "$fonts_dir" >/dev/null; then
+        warn "Unzipping Nerd Font archive failed."; rm -rf "$tmp_dir"; return 1
+    fi
+    rm -rf "$tmp_dir"
+
+    if command -v fc-cache >/dev/null 2>&1; then
+        fc-cache -fv "$fonts_root" >/dev/null || warn "fc-cache refresh failed; run 'fc-cache -fv ~/.local/share/fonts' manually."
+    else
+        warn "fc-cache not found; run 'fc-cache -fv ~/.local/share/fonts' to refresh fonts."
+    fi
+
+    info "JetBrainsMono Nerd Font installed under $fonts_dir. Set it in your terminal preferences."
+    record_managed_path "$fonts_dir"
+    return 0
 }
 
 copy_file() {
@@ -244,9 +291,16 @@ main() {
     local install_irc
     install_irc="$(normalize_answer "$answer")"
 
+    echo
+    echo "Shellfish can install JetBrainsMono Nerd Font (Light variants) locally for crisp icons."
+    echo "Fonts are copied to ~/.local/share/fonts and available system-wide for your user."
+    read -rp "Install JetBrainsMono Nerd Font Light? [Y/n] " answer
+    local install_font
+    install_font="$(normalize_answer "$answer")"
+
     local packages=(
         fish git curl wget python3 python3-pip python3-venv
-        eza tree zoxide fzf neofetch
+        eza tree zoxide fzf neofetch unzip
     )
     if [[ "$use_github" == "y" ]]; then
         packages+=(gh)
@@ -261,6 +315,16 @@ main() {
         ensure_packages "${packages[@]}"
     else
         info "Dry run: would install packages: ${packages[*]}"
+    fi
+
+    if [[ "$install_font" == "y" ]]; then
+        if [[ "$dry_run" == "n" ]]; then
+            if ! install_nerd_font; then
+                warn "JetBrainsMono Nerd Font installation encountered issues."
+            fi
+        else
+            info "Dry run: would install JetBrainsMono Nerd Font Light to ~/.local/share/fonts."
+        fi
     fi
 
     if [[ "$dry_run" == "n" ]]; then

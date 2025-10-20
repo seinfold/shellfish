@@ -5,9 +5,15 @@
 - **License:** MIT (see `LICENSE`)  
 - **Credits:** Fish shell, GitHub CLI, zoxide, GNU screen, Bun completion contributors.
 
-Shellfish is a portable bundle that recreates the Fish-based workflow (prompt, helpers, SSH setup, bootstrap script) on any Debian/Ubuntu-flavoured machine. Follow the steps below in order.
+Shellfish bundles high-usability terminal tools so your Debian/Ubuntu console looks sharp and works smarter. In one guided run you get:
 
-Re-running `./shellfish.sh` later will detect existing backups and offer to revert everything or reinstall with new settings.
+- A curated Fish experience (prompt, vi-mode tweaks, `gitget`, `repo_fuse`, `scr`, `screens`).
+- SSH scaffolding with optional shortcuts and GitHub-aware defaults.
+- Optional GitHub developer flow (GitHub username, dedicated `id_ed25519_github`, gh CLI reminder).
+- Optional IRC toolkit (GNU screen + irssi) for persistent chats.
+- Optional JetBrainsMono Nerd Font Light for crisp icons in Fish, VS Code, etc.
+
+Shellfish keeps track of its changes. Re-running `./shellfish.sh` spots old backups and offers to restore everything before reinstalling with new settings.
 
 ---
 
@@ -19,32 +25,34 @@ cd ~/shellfish
 chmod +x shellfish.sh
 ```
 
+You can clone anywhere; using `~/shellfish` keeps the instructions simple.
 ## 2. Launch the installer
 
 ```bash
 ./shellfish.sh
 ```
 
-Shellfish remembers previous installs. If it spots backups from an earlier run, it offers to undo all Shellfish changes before continuing. During a fresh install it will ask:
+During the guided install Shellfish asks:
 
 1. **GitHub usage** – answer “yes” to configure gitget/repo_fuse, generate `id_ed25519_github`, and get a reminder to run `gh auth login`.  
 2. **IRC helpers** – install GNU screen + irssi (required for the `scr` / `screens` helpers) or skip them.  
 3. **Bash prompt** – whether to replace your existing `~/.bashrc` (Shellfish makes a timestamped backup before overwriting).  
-4. **SSH shortcuts** – optionally import the sample `~/.ssh/config` and add your own `Host` aliases interactively.
+4. **SSH shortcuts** – optionally import the sample `~/.ssh/config` and add your own `Host` aliases interactively.  
+5. **JetBrainsMono Nerd Font Light** – download and install it locally so your terminal and editor show Nerd Font icons.
 
-After the prompts it:
-- Installs the requested CLI packages via `apt`.  
+After the prompts Shellfish:
+- Installs the requested CLI packages via `apt` (Fish, gh, zoxide, eza, tree, fzf, neofetch, unzip, screen/irssi if selected, etc.).  
 - Copies Fish configuration (prompt, helpers, completions, manifest template).  
 - Creates `~/.ssh`, optionally generates `id_ed25519_github`, and loads it with `ssh-add`.  
-- Leaves behind clear next steps (GitHub login, repo manifest tweaks, verification commands).
+- Optionally installs JetBrainsMono Nerd Font Light into `~/.local/share/fonts` and refreshes the font cache.
 
-## 3. Add the SSH key to GitHub (only if you generated a new one)
+## 3. Add the SSH key to GitHub (if you generated one)
 
 ```bash
 cat ~/.ssh/id_ed25519_github.pub
 ```
 
-Copy the single line into **GitHub → Settings → SSH and GPG keys → New SSH key**.
+Paste the single line into **GitHub → Settings → SSH and GPG keys → New SSH key**.
 
 ## 4. Authenticate GitHub CLI
 
@@ -52,16 +60,16 @@ Copy the single line into **GitHub → Settings → SSH and GPG keys → New SSH
 gh auth login --hostname github.com --git-protocol ssh --web
 ```
 
-Pick **SSH**, skip uploading a key (it’s already added), choose the browser flow, paste the code.
+Choose **SSH**, skip uploading a key (it’s already added), then follow the browser flow.
 
 ## 5. Restart the terminal
 
-Open a fresh Fish session so universal variables, abbreviations, and the little ASCII shellfish banner appear.
+Open a fresh Fish session so universal variables, abbreviations, and the shellfish banner kick in.
 
 ## 6. Sanity checks
 
 ```fish
-gitget --list            # repo.git lines from your account
+gitget --list            # repo.git lines from your GitHub account
 gitget --pick            # numbered selection clone
 gf --list                # repo_fuse manifest/GitHub listing
 repo_fuse --source github --list   # requires GitHub configuration
@@ -69,18 +77,17 @@ screens                  # current screen sessions + usage help
 scr demo log             # creates a logging screen session (detach with Ctrl-A D)
 ```
 
-If `gitget` or `repo_fuse` fail, verify `ssh -T git@github.com` greets you with your username (or re-run `shellfish.sh` and answer “yes” to the GitHub prompt).
+If `gitget` or `repo_fuse` fail, verify `ssh -T git@github.com` greets you with “Hi seinfold!”.
 
 ---
 
 ## Optional follow-ups
-- Install project-specific tooling (nodejs, npm, bun, build-essential, llvm, clang, Docker, VS Code, …). If you skipped screen/irssi earlier, install them before using `scr` / `screens`.  
+- Install project tooling you skipped (nodejs, npm, bun, build-essential, llvm, clang, Docker, VS Code, screen/irssi…).  
 - Edit `~/.config/fish/repos/catalog.toml` to swap the sample entries for real repositories.  
-- Customize `~/.config/fish/functions/gameserver.fish` with a shortcut of your own.  
-- Add `bind \cs 'screens\n'` to your `config.fish` if you want <kbd>Ctrl</kbd>+<kbd>S</kbd> to show the `screens` helper.
+- Customize `~/.config/fish/functions/gameserver.fish` with your own SSH shortcut.  
+- Add `bind \\cs 'screens\\n'` to `config.fish` if you want <kbd>Ctrl</kbd>+<kbd>S</kbd> to open the screen chooser.
 
 ## Updating later
-When configs change, rerun:
 
 ```bash
 cd ~/shellfish
@@ -88,7 +95,7 @@ git pull
 ./shellfish.sh
 ```
 
-The script backs up existing files with timestamps before replacing them.
+Shellfish backs up existing files with timestamps before replacing them.
 
 ---
 
