@@ -23,7 +23,8 @@ function irc
   if test "$has_session" = yes
     screen -x irc
   else
-    screen -S irc irssi -c __SHELLFISH_IRC_NETWORK__
+    set -l target_network (set -q SHELLFISH_IRC_NETWORK; and echo $SHELLFISH_IRC_NETWORK; or echo ircnet)
+    screen -S irc irssi -c $target_network
   end
 end
 

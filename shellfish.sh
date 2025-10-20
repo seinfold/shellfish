@@ -365,14 +365,15 @@ main() {
     fi
 
     if [[ "$dry_run" == "n" ]]; then
-        if grep -q "__SHELLFISH_IRC_NETWORK__" "$HOME/.config/fish/config.fish"; then
-            sed -i "s/__SHELLFISH_IRC_NETWORK__/$irc_network/" "$HOME/.config/fish/config.fish"
-        else
-            sed -i "s/irssi -c .*/irssi -c $irc_network/" "$HOME/.config/fish/config.fish"
+        if command -v fish >/dev/null 2>&1; then
+            if fish -c "set -Ux SHELLFISH_IRC_NETWORK $irc_network"; then
+                info "Set Shellfish irc helper network to '$irc_network'"
+            else
+                warn "Could not persist SHELLFISH_IRC_NETWORK; run 'fish -c "set -Ux SHELLFISH_IRC_NETWORK $irc_network"' manually."
+            fi
         fi
-        info "Set default irc helper network to '$irc_network'"
     else
-        info "Dry run: would configure irc helper to use '$irc_network'"
+        info "Dry run: would set SHELLFISH_IRC_NETWORK to '$irc_network'"
     fi
 
     if [[ "$dry_run" == "n" ]]; then
