@@ -1,14 +1,14 @@
 
 # Shellfish Terminal Toolkit
 
-- **Version:** 1.0.0
+- **Version:** 1.1.0
 - **Author:** seinfold
 - **License:** MIT (see `LICENSE`)
 - **Credits:** Fish shell, eza, tree, fzf, neofetch, zoxide, GNU screen, irssi, GitHub CLI, JetBrainsMono Nerd Font (Nerd Fonts project), Bun completion contributors
 
-Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session installs the essentials, locks in high-contrast fonts/icons, and leaves your shell tidy with backups.
+Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session installs the essentials, locks in high-contrast fonts/icons, and leaves your shell tidy (with backups).
 
-![Shellfish terminal screenshot](https://github.com/seinfold/shellfish/raw/main/docs/shellfish-terminal.png "Shellfish terminal screenshot")
+![Shellfish terminal screenshot](https://github.com/seinfold/shellfish/raw/main/docs/shellfish-terminal.png "Fish Terminal in action")
 
 ---
 
@@ -16,23 +16,23 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 
 | Component | Purpose |
 |-----------|---------|
-| **fish shell** | Modern shell with Shellfish prompt, vi-mode indicator, IP banner, ASCII shellfish |
+| **fish shell** | Modern shell with custom modifications that you can tune to your likings |
 | **eza** | Fast, colourful replacement for `ls` with Git status and icons |
-| **tree** | Recursive directory tree view for quick structure overviews |
+| **tree** | Recursive directory tree view |
 | **fzf** | Fuzzy finder for history, files, and command output |
-| **neofetch** | System summary banner (useful when sharing terminals/screens) |
-| **zoxide** | `z` and `zi` smart directory jumping based on usage |
+| **neofetch** | System summary banner |
+| **zoxide** | `z` and `zi` smart directory jumping |
 | **git** | Version control CLI used by Shellfish helpers |
 | **curl** | HTTP utility used during setup and scripting |
 | **wget** | Alternate download utility for environments without curl |
 | **python3** | Runtime for repo_fuse/gitget helper scripts |
 | **GNU screen** | Terminal multiplexer keeping long-running sessions alive |
-| **irssi** *(optional)* | IRC client you can run inside screen (if you opt in during setup) |
-| **gh** *(optional)* | GitHub CLI for repo listing and SSH auth checks |
+| **irssi** *(optional)* | IRC client you can run inside screen |
+| **gh** *(optional)* | GitHub CLI for quick repo listing and SSH auth checks |
 | **unzip** | Required to unpack font archives |
 | **JetBrainsMono Nerd Font Light** | Installed automatically so Fish icons render correctly (keep your terminal on this font or another Nerd Font) |
 
-> Shellfish automatically installs JetBrainsMono Nerd Font Light. Switching your terminal to a non Nerd Font may hide file/folder glyphs.
+> Shellfish automatically installs JetBrainsMono Nerd Font Light. Switching your terminal to a non Nerd Font may hide file/folder graphic elements.
 
 ---
 
@@ -54,10 +54,19 @@ Quick reminders for the helpers Shellfish installs:
   gf sample-service      # clone + run setup steps
   gf --source github     # switch to live GitHub listing
   ```
+  
+- **`scr` / `screens`** – easy managing of GNU screen sessions.
+  ```fish
+  scr NAME               # opens screen NAME - use for game consoles / irc / development servers
+  scr NAME log           # opens screen NAME - use for game consoles / irc / development servers with logging under ~/Documents/logs
+  screens                # list all screens running that you can join with 'scr' or detach them with Ctrl-A → D
+  ```
+  
+- **`irc`** – shortcut to IRC session with Irssi on a network of your choosing.
+  ```fish
+  irc                    # opens irc server connection, use with screen to keep chats open that you can return to
+  ```
 
-- **`scr NAME [log]`** – start/attach a GNU screen session (adds log files under `~/Documents/logs` when you append `log`). Detach with `Ctrl-A D`.
-- **`screens`** – show current screen sessions with usage hints.
-- **`irc`** – start or reattach the `screen` + `irssi` session using the network you chose during setup (warns if screen/irssi aren’t installed).
 - **`stay <command>`** – run a command detached from the terminal (`nohup` wrapper).
 - **`ls`** / **`treelist`** – aliased to `eza --icons` and `tree -a -I '.git'` for glyph-rich directory views.
 
@@ -73,21 +82,19 @@ chmod +x shellfish.sh
 ./shellfish.sh
 ```
 
-### During setup you will be asked about
+### Optional installs
 
 1. **GitHub support** – configure `gitget`/`repo_fuse` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
 1. **irssi** – choose whether to install the IRC client; if enabled you can pick a default network (ircnet/libera/oftc/efnet/custom).
 1. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
 
-Shellfish automatically replaces `~/.bashrc` (with a timestamped backup) and installs JetBrainsMono Nerd Font Light. GNU screen is part of the default install; irssi is optional.
-
-If backups from a previous run exist, Shellfish offers to restore everything before continuing.
+Shellfish automatically replaces your `~/.bashrc` - but don't worry it will create backups that you can revert to by just running the script again.
 
 ---
 
 ## Catalog vs GitHub mode (repo_fuse & gitget)
 
-Shellfish ships with an example catalog at `~/.config/fish/repos/catalog.toml`, but **you do not have to maintain it**. repo_fuse and gitget work three ways:
+Shellfish ships with an example catalog at `~/.config/fish/repos/catalog.toml`, but **you can just leave it as it is if needed**. repo_fuse and gitget work three ways:
 
 1. **GitHub mode (default during setup)** – Shellfish wires `gitget` + `repo_fuse` to your GitHub account via the `gh` CLI. Running `gitget --list` or `repo_fuse --source github --list` pulls live repositories without touching the catalog.
 2. **Catalog mode** – edit `catalog.toml` when you want extra automation (setup commands, descriptions, grouping). Each `[[repo]]` block contains `name`, `url`, optional `branch`, and optional `setup` array. repo_fuse reads those entries when you run `repo_fuse --manifest ~/.config/fish/repos/catalog.toml` (or simply `repo_fuse` if you keep the defaults).
@@ -122,26 +129,16 @@ When you run `repo_fuse blog`, Shellfish clones the repo, runs the `setup` comma
    gh auth login --hostname github.com --git-protocol ssh --web
    ```
 
-3. **Open a fresh Fish terminal** to load prompts, abbreviations, and the Shellfish banner.
+3. **Open a fresh Fish terminal**
 
-4. **Sanity check helpers**:
-   ```fish
-   gitget --list            # repo.git lines from GitHub (requires GitHub configuration)
-   gitget --pick            # numbered selection clone
-   gf --list                # repo_fuse manifest/GitHub listing
-   repo_fuse --source github --list   # requires GitHub configuration
-   screens                  # list screen sessions + usage hints
-   scr demo log             # create a logging screen session (Ctrl-A D to detach)
-   ```
 
 ---
 
 ## Optional follow-ups
 
 - Replace the manifest entries in `~/.config/fish/repos/catalog.toml` with your real projects (if you want curated automation).
-- Customize `~/.config/fish/functions/gameserver.fish` with your favourite SSH shortcut.
+- Customize `~/.config/fish/functions/gameserver.fish` with your favourite SSH shortcuts so you can connect to different server with just single word.
 - Bind `Ctrl+S` to the screen list: `bind \cs 'screens\n'` in `config.fish`.
-- Install other tooling you skipped (Node.js, bun, Docker, VS Code, etc.).
 
 ## Re-running Shellfish later
 
