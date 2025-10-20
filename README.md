@@ -36,35 +36,31 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 
 ---
 
+
 ## Shellfish customisations
 
-Shellfish installs several Fish helpers and abbreviations. Use this quick guide:
+Quick reminders for the helpers Shellfish installs:
 
-- **`gg` → `gitget`** — fuzzy list or clone GitHub repositories.
+- **`gg` / `gitget`** – list or clone GitHub repositories.
   ```fish
-  gg --list
-  gg repo-name.git          # clone a specific repo
-  gg 3                      # clone the 3rd entry from the list
+  gg --list              # show repos as name.git
+  gg my-repo.git         # clone by name
+  gg 3                   # clone the third entry
   ```
 
-- **`gf` / `rf` → `repo_fuse`** — curated clone + setup from the manifest or GitHub.
+- **`gf` / `rf` → `repo_fuse`** – curated clone + setup.
   ```fish
-  gf --list                 # list manifest entries
-  gf sample-service         # clone + run setup commands
-  gf --source github --list # browse live GitHub repositories
+  gf --list              # manifest entries
+  gf sample-service      # clone + run setup steps
+  gf --source github     # switch to live GitHub listing
   ```
 
-- **`scr NAME` / `scr NAME log`** — create or attach a GNU screen session (with logging when requested). Detach with `Ctrl-A D`.
+- **`scr NAME [log]`** – start/attach a GNU screen session (adds log files under `~/Documents/logs` when you append `log`). Detach with `Ctrl-A D`.
+- **`screens`** – show current screen sessions with usage hints.
+- **`irc`** – start or reattach the `screen` + `irssi` session using the network you chose during setup (warns if screen/irssi aren’t installed).
+- **`stay <command>`** – run a command detached from the terminal (`nohup` wrapper).
+- **`ls`** / **`treelist`** – aliased to `eza --icons` and `tree -a -I '.git'` for glyph-rich directory views.
 
-- **`screens`** — list available GNU screen sessions with usage hints.
-
-- **`irc`** — start or reattach the `screen` + `irssi` session using the network you selected during setup (falls back to a warning if screen/irssi aren’t installed).
-
-- **`stay <command>`** — run a long task detached from the terminal (`nohup` wrapper defined in `config.fish`).
-
-Other niceties: `ls` is aliased to `eza --icons`, and `treelist` runs `tree -a -I '.git'` for a quick project overview.
-
-Shellfish records every file it touches in `~/.local/share/shellfish/managed_files.txt`. Re-running `./shellfish.sh` spots existing backups and offers to roll everything back first.
 
 ---
 
@@ -147,7 +143,7 @@ When you run `repo_fuse blog`, Shellfish clones the repo, runs the `setup` comma
 - Bind `Ctrl+S` to the screen list: `bind \cs 'screens\n'` in `config.fish`.
 - Install other tooling you skipped (Node.js, bun, Docker, VS Code, etc.).
 
-## Updating later
+## Re-running Shellfish later
 
 ```bash
 cd ~/shellfish
@@ -155,7 +151,7 @@ git pull
 ./shellfish.sh
 ```
 
-Shellfish always backs up existing files before replacing them, and it can restore those backups on demand.
+Shellfish automatically backs up any file it changes with a timestamped `.bak`. When you rerun the installer it detects those backups and offers to restore the previous state before applying new settings.
 
 ---
 
