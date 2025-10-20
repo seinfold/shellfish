@@ -51,6 +51,8 @@ chmod +x shellfish.sh
 ./shellfish.sh
 ```
 
+![Shellfish terminal screenshot](https://github.com/seinfold/shellfish/raw/main/docs/shellfish-terminal.png "Shellfish terminal screenshot")
+
 ### During setup you will be asked about
 
 1. **GitHub support** – configure `gitget`/`repo_fuse` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
