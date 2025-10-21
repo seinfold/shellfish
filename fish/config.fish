@@ -1,162 +1,162 @@
-# aliases
+# =========================
+# shellfish: Linux-only fish config
+# =========================
 
+# ----- aliases -----
 alias ls "eza --icons"
 alias treelist "tree -a -I '.git'"
 
+# ----- IRC helper (GNU screen + irssi) -----
 function irc
-  if not type -q screen
-    echo "Shellfish: GNU screen is not installed; install it to use this helper." >&2
-    return 1
-  end
+    if not type -q screen
+        echo "Shellfish: GNU screen is missing. Install it." >&2
+        return 1
+    end
+    if not type -q irssi
+        echo "Shellfish: irssi is missing. Install it, then run: screen -S irc irssi" >&2
+        return 1
+    end
 
-  if not type -q irssi
-    echo "Shellfish: irssi is not installed. Run 'screen -S irc irssi' after installing irssi." >&2
-    return 1
-  end
+    set -l has_session no
+    if string match -q -r '\.irc(\s|$)' -- (screen -ls 2>/dev/null)
+        set has_session yes
+    end
 
-  set -l sessions (screen -ls ^/dev/null; or true)
-  set -l has_session no
-  if string match -q '*\.irc*' $sessions
-    set has_session yes
-  end
-
-  if test "$has_session" = yes
-    screen -x irc
-  else
-    set -l target_network (set -q SHELLFISH_IRC_NETWORK; and echo $SHELLFISH_IRC_NETWORK; or echo ircnet)
-    screen -S irc irssi -c $target_network
-  end
+    if test "$has_session" = yes
+        screen -S irc -D -RR
+    else
+        set -l target_network (set -q SHELLFISH_IRC_NETWORK; and echo $SHELLFISH_IRC_NETWORK; or echo ircnet)
+        screen -S irc -D -RR irssi -c "$target_network"
+    end
 end
 
-# prevents apps from closing when closing terminal
+# ----- keep apps alive after closing terminal -----
 # usage: stay <command>
 function stay
-  nohup $argv > /dev/null 2>&1 < /dev/null & disown
+    nohup $argv > /dev/null 2>&1 < /dev/null & disown
 end
 
-# custom greeting
+# ----- greeting -----
 set -l NOW (date "+%Y-%m-%d %H:%M:%S")
 
 set -l LOCAL_IP "unknown"
 if type -q ip
-  set -l ip_candidates (ip -4 addr show scope global 2>/dev/null | string match -rg 'inet ([0-9\.]+)')
-  if test (count $ip_candidates) -gt 0
-    set LOCAL_IP $ip_candidates[1]
-  end
+    set -l ip_candidates (ip -4 addr show scope global 2>/dev/null | string match -rg 'inet ([0-9\.]+)')
+    if test (count $ip_candidates) -gt 0
+        set LOCAL_IP $ip_candidates[1]
+    end
 end
 
 if test "$LOCAL_IP" = "unknown"
-  if type -q hostname
-    set -l host_candidates (command hostname -I 2>/dev/null)
-    if test (count $host_candidates) -gt 0
-      set LOCAL_IP $host_candidates[1]
+    if type -q hostname
+        set -l host_candidates (command hostname -I 2>/dev/null)
+        if test (count $host_candidates) -gt 0
+            set LOCAL_IP $host_candidates[1]
+        end
     end
-  end
 end
 
 if test "$LOCAL_IP" = "unknown"
-  if type -q ifconfig
-    set -l ifconfig_candidates (ifconfig 2>/dev/null | string match -rg 'inet ([0-9\.]+)')
-    set ifconfig_candidates (string match -v '127.0.0.1' $ifconfig_candidates)
-    if test (count $ifconfig_candidates) -gt 0
-      set LOCAL_IP $ifconfig_candidates[1]
+    if type -q ifconfig
+        set -l ifconfig_candidates (ifconfig 2>/dev/null | string match -rg 'inet ([0-9\.]+)')
+        set ifconfig_candidates (string match -v '127.0.0.1' $ifconfig_candidates)
+        if test (count $ifconfig_candidates) -gt 0
+            set LOCAL_IP $ifconfig_candidates[1]
+        end
     end
-  end
 end
 
 set -l EXTERNAL_IP "offline"
 if type -q curl
-  set -l ext (curl -s --max-time 2 https://ifconfig.me 2>/dev/null)
-  if test -n "$ext"
-    set EXTERNAL_IP $ext
-  end
+    set -l ext (curl -s --max-time 2 https://ifconfig.me 2>/dev/null)
+    if test -n "$ext"
+        set EXTERNAL_IP $ext
+    end
 end
 
 set fish_greeting (string join ' ' \
-  (set_color --bold 06b6d4)"[$NOW]" \
-  (set_color --bold 14b8a6)"L:$LOCAL_IP" \
-  (set_color --bold efcf40)"E:$EXTERNAL_IP" \
-  (set_color normal))
+    (set_color --bold 06b6d4)"[$NOW]" \
+    (set_color --bold 14b8a6)"L:$LOCAL_IP" \
+    (set_color --bold efcf40)"E:$EXTERNAL_IP" \
+    (set_color normal))
 
 if status is-interactive
-  printf '\n      __\n  ><((__o  shellfish is now guarding your loot\n\n'
+    printf '\n      __\n  ><((__o  shellfish is now guarding your loot\n\n'
 end
 
+# ----- key bindings -----
 function fish_user_key_bindings
-  fish_vi_key_bindings
-
-  # set kj to <Esc>
-  bind -M insert -m default kj backward-char force-repaint
+    fish_vi_key_bindings
+    # Map 'kj' to behave like <Esc> (leave insert mode)
+    bind -M insert kj 'set fish_bind_mode default; commandline -f repaint'
 end
 
-# UNCOMMENT FOR RIGHT PROMPT 
+# UNCOMMENT FOR RIGHT PROMPT
 # function fish_right_prompt
-#   echo (set_color 71717a)"$USER"@(prompt_hostname)
+#     echo (set_color 71717a)"$USER"@(prompt_hostname)
 # end
 
-# indicator for vi
+# ----- vi mode indicator (left of prompt) -----
 function fish_mode_prompt
-  switch "$fish_bind_mode"
-    case "default"
-      echo -n (set_color --bold f43f5e)"N"
-    case "insert"
-      echo -n (set_color --bold 84cc16)"I"
-    case "visual"
-      echo -n (set_color --bold 8b5cf6)"V"
-    case "*"
-      echo -n (set_color --bold)"?"
-  end
-
-  echo -n " "
+    switch "$fish_bind_mode"
+        case default
+            echo -n (set_color --bold f43f5e)"N"
+        case insert
+            echo -n (set_color --bold 84cc16)"I"
+        case visual
+            echo -n (set_color --bold 8b5cf6)"V"
+        case '*'
+            echo -n (set_color --bold)"?"
+    end
+    echo -n " "
 end
 
-# always use block caret (vimode)
-set -U fish_cursor_default block
+# Always use block caret in normal mode (set once, universal)
+set -q fish_cursor_default; or set -U fish_cursor_default block
 
-# custom prompt
+# ----- prompt -----
 function fish_prompt
-  set_color --bold 4086ef
-
-  set transformed_pwd (prompt_pwd | string replace -r "^~" (set_color --bold 06b6d4)"~"(set_color --bold 3b82f6))
-
-  echo -n $transformed_pwd
-
-  # space between path and prompt arrow
-  echo -n " "
-
-  # arrows
-  # echo -n (set_color --bold efcf40)"❱"
-  # echo -n (set_color --bold ef9540)"❱"
-  # echo -n (set_color --bold ea3838)"❱"
-  
-  echo -n (set_color --bold 14b8a6)"→"
-  
-  #space
-  echo -n " "
-
-  set_color normal
+    set_color --bold 4086ef
+    set transformed_pwd (prompt_pwd | string replace -r "^~" (set_color --bold 06b6d4)"~"(set_color --bold 3b82f6))
+    echo -n $transformed_pwd
+    echo -n " "
+    echo -n (set_color --bold 14b8a6)"→"
+    echo -n " "
+    set_color normal
 end
 
-# set environment variables
-fish_add_path /usr/local/bin
-fish_add_path /opt/bin
+# ----- PATHs -----
+fish_add_path /usr/local/bin /opt/bin
+fish_add_path $HOME/.cargo/bin
 
-# set editor
-set -x EDITOR "vim"
+# bun
+set -gx BUN_INSTALL "$HOME/.bun"
+fish_add_path $BUN_INSTALL/bin
 
-set QT_QPA_PLATFORM xcb
+# pnpm
+set -gx PNPM_HOME "$HOME/.local/share/pnpm"
+fish_add_path $PNPM_HOME
 
-# fzf
-# export FZF_DEFAULT_OPTS="
-# --bind='ctrl-j:down,ctrl-k:up,ctrl-t:toggle-all,ctrl-v:toggle-preview,ctrl-space:toggle-preview'
-# --color=fg:#ffffff,hl:#00ff00,fg+:#a5b4fc,bg+:#737373,hl+:#ffff00,info:#14b8a6,spinner:#00ffff,pointer:#f59e0b
-# "
+# zoxide (Linux)
+if type -q zoxide
+    zoxide init fish | source
+end
 
-# TokyoNight Color Palette from https://github.com/folke/tokyonight.nvim/blob/main/extras/fish/tokyonight_storm.fish
+# Homebrew on Linux (optional)
+if test -x /home/linuxbrew/.linuxbrew/bin/brew
+    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+end
+
+# ----- env -----
+set -gx EDITOR vim
+# Force XCB only under X11; Wayland users usually shouldn’t set this.
+if test "$XDG_SESSION_TYPE" = "x11"
+    set -gx QT_QPA_PLATFORM xcb
+end
+
+# ----- colors (TokyoNight-ish) -----
 set -l foreground c0caf5
-# changed from default
 set -l selection 6366f1
-# changed from default
 set -l comment 737373
 set -l red f7768e
 set -l orange ff9e64
@@ -188,49 +188,3 @@ set -g fish_pager_color_prefix $cyan
 set -g fish_pager_color_completion $foreground
 set -g fish_pager_color_description $comment
 set -g fish_pager_color_selected_background --background=$selection
-
-# cargo
-fish_add_path $HOME/.cargo/bin
-
-# bun
-set --export BUN_INSTALL "$HOME/.bun"
-fish_add_path $BUN_INSTALL/bin
-
-# pnpm
-set -gx PNPM_HOME "$HOME/.local/share/pnpm"
-fish_add_path $PNPM_HOME
-
-# fnm setup (homebrew or default)
-if test (uname) = "Darwin"
-  # macOS paths
-  if test -x /opt/homebrew/bin/fnm
-    fish_add_path /opt/homebrew/bin
-    eval (/opt/homebrew/bin/fnm env)
-  else if test -x $HOME/.fnm/fnm
-    fish_add_path $HOME/.fnm
-    eval (fnm env)
-  end
-
-  # zoxide setup (homebrew)
-  if test -x /opt/homebrew/bin/zoxide
-    fish_add_path /opt/homebrew/bin
-    zoxide init fish | source
-  end
-
-  # homebrew shell environment (macOS only)
-  if test -x /opt/homebrew/bin/brew
-    eval (/opt/homebrew/bin/brew shellenv)
-  end
-
-  # LM Studio CLI (macOS)
-  set -gx PATH $PATH $HOME/.lmstudio/bin
-else
-  # linux or other platforms
-  if type -q zoxide
-    zoxide init fish | source
-  end
-
-  if test -x /home/linuxbrew/.linuxbrew/bin/brew
-    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-  end
-end
