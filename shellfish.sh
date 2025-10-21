@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# UI facelift changelog:
+# - Added colorized logging with minimal TUI helpers and spinner support.
+# - Wrapped the startup banner in a framed header via ui_header().
+# - Introduced boxed callouts for GitHub helper, SSH shortcuts, and next steps.
+# - Hooked spinners around apt updates, package installs, and font setup.
+# - Preserved existing prompts and side effects while refining terminal output.
+# - Spinner prefers gum when available and falls back to an ANSI implementation.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,15 +34,178 @@ DEFAULT_PATHS=(
   "$HOME/.config/fish/functions/screens.fish"
   "$HOME/.config/fish/conf.d/fnm.fish"
   "$HOME/.config/fish/conf.d/rustup.fish"
+  "$HOME/.config/fish/conf.d/99-shellfish-paths.fish"
   "$HOME/.config/fish/completions/bun.fish"
   "$HOME/.bashrc"
   "$SHELLFISH_BASHRC"
   "$HOME/.ssh/config"
 )
 
-info()  { printf "\033[1;34m[info]\033[0m %s\n" "$*"; }
-warn()  { printf "\033[1;33m[warn]\033[0m %s\n" "$*"; }
-error() { printf "\033[1;31m[err ]\033[0m %s\n" "$*"; }
+# --- UI helpers ------------------------------------------------------------
+
+_have() { command -v "$1" >/dev/null 2>&1; }
+
+UI_RESET=$'\033[0m'
+UI_BOLD=$'\033[1m'
+UI_TTY=0
+[[ -t 1 ]] && UI_TTY=1
+
+_ui_fg() { printf '\033[38;5;%sm' "$1"; }
+
+readonly UI_COLOR_ACCENT=75
+readonly UI_COLOR_INFO=81
+readonly UI_COLOR_WARN=214
+readonly UI_COLOR_ERR=203
+readonly UI_COLOR_OK=70
+readonly UI_COLOR_FRAME=240
+
+_ui_repeat() {
+  local char="$1" count="$2" out=""
+  while (( count-- > 0 )); do out+="$char"; done
+  printf '%s' "$out"
+}
+
+_ui_tag() {
+  local label="$1" color="$2"
+  printf "%s[%-4s]%s" "$(_ui_fg "$color")$UI_BOLD" "$label" "$UI_RESET"
+}
+
+_ui_status() {
+  local label="$1" color="$2"; shift 2
+  local message="$*"
+  printf "%s %s\n" "$(_ui_tag "$label" "$color")" "$message"
+}
+
+info()  { _ui_status "info" "$UI_COLOR_INFO" "$@"; }
+warn()  { _ui_status "warn" "$UI_COLOR_WARN" "$@"; }
+error() { _ui_status "err"  "$UI_COLOR_ERR"  "$@"; }
+
+ui_box() {
+  local title="$1"
+  shift || true
+  local width=74
+  if [[ $# -ge 1 && -n "${1:-}" ]]; then
+    width="$1"
+    shift || true
+  fi
+  local lines=()
+  local line
+  while IFS= read -r line; do
+    lines+=("$line")
+  done
+  if [[ ${#lines[@]} -eq 0 ]]; then
+    lines=("")
+  fi
+
+  local max_len=0
+  for line in "${lines[@]}"; do
+    (( ${#line} > max_len )) && max_len=${#line}
+  done
+
+  local inner=$((width - 2))
+  if (( inner < max_len )); then
+    inner=$max_len
+    width=$((inner + 2))
+  fi
+
+  local frame="${UI_BOLD}$(_ui_fg "$UI_COLOR_FRAME")"
+  local border="$(_ui_repeat "─" "$inner")"
+
+  if [[ -n "$title" ]]; then
+    local header="─ ${title} "
+    if (( ${#header} > inner )); then
+      header="─ ${title:0:$((inner - 2))}"
+    fi
+    local remaining=$((inner - ${#header}))
+    (( remaining < 0 )) && remaining=0
+    printf "%s┌%s%s┐%s\n" "$frame" "$header" "$(_ui_repeat "─" "$remaining")" "$UI_RESET"
+  else
+    printf "%s┌%s┐%s\n" "$frame" "$border" "$UI_RESET"
+  fi
+
+  for line in "${lines[@]}"; do
+    printf "%s│%-*s│%s\n" "$frame" "$inner" "$line" "$UI_RESET"
+  done
+
+  printf "%s└%s┘%s\n" "$frame" "$border" "$UI_RESET"
+}
+
+ui_header() {
+  local title="$1"
+  local subtitle="$2"
+  local art="$3"
+  {
+    printf '%s\n' "$art"
+    printf '\n%s\n' "$subtitle"
+  } | ui_box "$title"
+}
+
+_ui_clear_line() {
+  (( UI_TTY == 1 )) || return 0
+  if tput el >/dev/null 2>&1; then
+    tput el
+  else
+    printf '\033[K'
+  fi
+}
+
+ui_spin() {
+  local message="$1"
+  shift
+  if [[ $# -eq 0 ]]; then
+    return 0
+  fi
+
+  if (( UI_TTY == 1 )) && _have gum; then
+    gum spin --title "$message" -- "$@"
+    local status=$?
+    if (( status == 0 )); then
+      _ui_status "ok" "$UI_COLOR_OK" "$message"
+    else
+      _ui_status "err" "$UI_COLOR_ERR" "$message"
+    fi
+    return $status
+  fi
+
+  if (( UI_TTY == 0 )); then
+    "$@"
+    local status=$?
+    if (( status == 0 )); then
+      _ui_status "ok" "$UI_COLOR_OK" "$message"
+    else
+      _ui_status "err" "$UI_COLOR_ERR" "$message"
+    fi
+    return $status
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  "$@" >"$tmp" 2>&1 &
+  local pid=$!
+  local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+  local frame_index=0
+
+  while kill -0 "$pid" >/dev/null 2>&1; do
+    printf '\r%s %s' "$(_ui_tag "${frames[frame_index]}" "$UI_COLOR_ACCENT")" "$message"
+    sleep 0.1
+    frame_index=$(( (frame_index + 1) % ${#frames[@]} ))
+  done
+
+  wait "$pid"
+  local status=$?
+  printf '\r'
+  _ui_clear_line
+  if (( status == 0 )); then
+    _ui_status "ok" "$UI_COLOR_OK" "$message"
+  else
+    _ui_status "err" "$UI_COLOR_ERR" "$message"
+  fi
+  if [[ -s "$tmp" ]]; then
+    cat "$tmp"
+  fi
+  rm -f "$tmp"
+  return $status
+}
 
 normalize_answer() {
   local ans="${1:-}"
@@ -191,12 +361,17 @@ ensure_gh_on_apt() {
 ensure_packages() {
   local packages=("$@")
   if command -v apt-get >/dev/null 2>&1; then
-    info "Updating package index…"
-    sudo apt-get update
+    ui_spin "Updating package index" sudo apt-get update
     local pkg
     for pkg in "${packages[@]}"; do
-      if [[ "$pkg" == "gh" ]]; then ensure_gh_on_apt || warn "Could not install gh automatically."
-      else info "Installing $pkg…"; ensure_package_apt "$pkg" || warn "Could not install $pkg automatically."
+      if [[ "$pkg" == "gh" ]]; then
+        if ! ui_spin "Installing $pkg" ensure_gh_on_apt; then
+          warn "Could not install gh automatically."
+        fi
+      else
+        if ! ui_spin "Installing $pkg" ensure_package_apt "$pkg"; then
+          warn "Could not install $pkg automatically."
+        fi
       fi
     done
   else
@@ -265,8 +440,7 @@ main() {
     info "Dry run mode. No changes will be made."
   fi
 
-  printf "\n%s\n\n" "$SHELLFISH_ASCII"
-  info "Shellfish v${SHELLFISH_VERSION} — prepping your Fish terminal environment."
+  ui_header "shellfish v${SHELLFISH_VERSION}" "terminal toolkit by Tero Civill" "$SHELLFISH_ASCII"
 
   ensure_state
 
@@ -319,6 +493,9 @@ main() {
   local key_path="$HOME/.ssh/id_ed25519_github"
 
   if [[ "$use_github" == "y" ]]; then
+    ui_box "GitHub helper setup" <<'EOF'
+Set a default GitHub username, optionally stage a GitHub-specific SSH config, and generate an ed25519 key. Each step can be skipped with the 'abort' keyword.
+EOF
     echo
     echo "GitHub helper setup (type 'abort' at any prompt to skip the remaining steps)."
     local github_abort=0
@@ -450,7 +627,11 @@ main() {
   fi
 
   if [[ "$dry_run" == "n" ]]; then
-    install_nerd_font || warn "JetBrainsMono Nerd Font installation encountered issues."
+    if ! ui_spin "Installing JetBrainsMono Nerd Font" install_nerd_font; then
+      warn "JetBrainsMono Nerd Font installation encountered issues."
+    fi
+  else
+    info "Dry run: would install JetBrainsMono Nerd Font to ~/.local/share/fonts."
   fi
 
   if [[ "$dry_run" == "n" ]]; then
@@ -474,6 +655,7 @@ main() {
     copy_file "$SCRIPT_DIR/fish/functions/screens.fish" "$HOME/.config/fish/functions/screens.fish"
     copy_file "$SCRIPT_DIR/fish/conf.d/fnm.fish" "$HOME/.config/fish/conf.d/fnm.fish"
     copy_file "$SCRIPT_DIR/fish/conf.d/rustup.fish" "$HOME/.config/fish/conf.d/rustup.fish"
+    copy_file "$SCRIPT_DIR/fish/conf.d/99-shellfish-paths.fish" "$HOME/.config/fish/conf.d/99-shellfish-paths.fish"
     copy_file "$SCRIPT_DIR/fish/completions/bun.fish" "$HOME/.config/fish/completions/bun.fish"
   else
     info "Dry run: would copy Fish configuration files."
@@ -513,6 +695,9 @@ main() {
   fi
 
   echo
+  ui_box "SSH Shortcuts" <<'EOF'
+Adding an SSH shortcut records the host in ~/.ssh/config and creates matching Fish functions (lowercase and uppercase) for quick access.
+EOF
   echo "SSH shortcuts let you launch saved SSH connections; Shellfish updates ~/.ssh/config and adds Fish helpers for you."
   read -rp "Create SSH shortcuts now? [Y/n] " add_hosts_answer
   if [[ "$(normalize_answer "$add_hosts_answer")" == "y" ]]; then
@@ -705,6 +890,9 @@ main() {
   fi
 
   echo
+  ui_box "Next steps" <<'EOF'
+Finish GitHub authentication, start a fresh Fish session, and explore repositories with gitget --list.
+EOF
   echo "Next steps:"
   if [[ "$use_github" == "y" ]]; then
     echo "  • Copy ~/.ssh/id_ed25519_github.pub → GitHub → Settings → SSH and GPG keys."

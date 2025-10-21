@@ -58,6 +58,7 @@ Each file touched receives a timestamped `.bak` backup alongside the original.
 | Fish shell | Interactive shell environment | Vi keybindings enabled |
 | gitget | GitHub repository discovery / clone helper | Uses `gh` |
 | ssh_shortcuts | Fish wrappers for SSH hosts | Generated during install |
+| PATH bootstrap | Adds common user bin directories to Fish PATH | `fish/conf.d/99-shellfish-paths.fish` |
 | scr / screens | GNU screen wrappers | Logging variant supported |
 | fzf | Fuzzy selection utility | Integrated with Fish history |
 | zoxide | Directory jump database | `z` and `zi` commands |
