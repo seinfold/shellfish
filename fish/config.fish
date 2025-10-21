@@ -13,15 +13,21 @@ function irc
         return 1
     end
 
-    set -l has_session no
-    if string match -q -r '\.irc(\s|$)' -- (screen -ls 2>/dev/null)
-        set has_session yes
+    set -l target_network (set -q SHELLFISH_IRC_NETWORK; and echo $SHELLFISH_IRC_NETWORK; or echo ircnet)
+
+    if set -q STY
+        if screen -S "$STY" -Q windows | string match -q "*irc*"
+            screen -S "$STY" -X select irc
+        else
+            screen -S "$STY" -X screen -t irc irssi -c "$target_network"
+            screen -S "$STY" -X select irc
+        end
+        return
     end
 
-    if test "$has_session" = yes
+    if string match -q -r '\.irc(\s|$)' -- (screen -ls 2>/dev/null)
         screen -S irc -D -RR
     else
-        set -l target_network (set -q SHELLFISH_IRC_NETWORK; and echo $SHELLFISH_IRC_NETWORK; or echo ircnet)
         screen -S irc -D -RR irssi -c "$target_network"
     end
 end
