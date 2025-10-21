@@ -77,9 +77,19 @@ chmod +x shellfish.sh
 
 ### Optional installs
 
-1. **GitHub support** – configure `gitget` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
+1. **GitHub support** – configure `gitget` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`. `gitget` can be used to list all your GitHub repositories easily and clone any of them to your computer.
 1. **irssi** – choose whether to install the IRC client; if enabled you can pick a default network (ircnet/libera/oftc/efnet/custom).
-1. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
+1. **SSH shortcuts** – add aliases like `devserver` or `DEVSERVER` to immediately SSH to that server from your terminal.
+   ```bash
+    function devserver --description ' SSH into the Development Server '
+        ssh -p 22 user@127.0.0.1 $argv
+    end
+    
+    function DEVSERVER --description ' SSH into the Development server '
+        devserver $argv
+    end
+   ```
+
 
 Shellfish automatically replaces your `~/.bashrc` - but don't worry it will create backups that you can revert to by just running the script again.
 
@@ -113,13 +123,7 @@ Shellfish automatically replaces your `~/.bashrc` - but don't worry it will crea
 - Customize `~/.config/fish/functions/gameserver.fish` with your favourite SSH shortcuts so you can connect to different server with just single word.
 - Bind `Ctrl+S` to the screen list: `bind \cs 'screens\n'` in `config.fish`.
 
-## Re-running Shellfish later
-
-```bash
-cd ~/shellfish
-git pull
-./shellfish.sh
-```
+## Backups
 
 Shellfish automatically backs up any file it changes with a timestamped `.bak`. When you rerun the installer it detects those backups and offers to restore the previous state before applying new settings.
 
