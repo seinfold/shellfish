@@ -15,6 +15,9 @@ EOF
 
 STATE_DIR="$HOME/.local/share/shellfish"
 MANIFEST_FILE="$STATE_DIR/managed_files.txt"
+SHELLFISH_BASHRC="$STATE_DIR/bashrc"
+SHELLFISH_SNIPPET_START="# >>> shellfish >>>"
+SHELLFISH_SNIPPET_END="# <<< shellfish <<<"
 declare -a MANAGED_PATHS=()
 DEFAULT_PATHS=(
   "$HOME/.config/fish/config.fish"
@@ -29,6 +32,7 @@ DEFAULT_PATHS=(
   "$HOME/.config/fish/completions/bun.fish"
   "$HOME/.config/fish/repos/catalog.toml"
   "$HOME/.bashrc"
+  "$SHELLFISH_BASHRC"
   "$HOME/.ssh/config"
 )
 
@@ -216,6 +220,47 @@ fish_set_universal() {
   fish -c 'set -Ux -- $argv[1] $argv[2]' -- "$1" "$2" || return 1
 }
 
+ensure_bashrc_snippet() {
+  local target="$HOME/.bashrc"
+  local snippet_file="$SHELLFISH_BASHRC"
+  local resolved
+
+  if [[ -f "$target" ]]; then
+    if grep -Fq "$SHELLFISH_SNIPPET_START" "$target"; then
+      info "Shellfish snippet already present in $target"
+    else
+      local backup="${target}.${TIMESTAMP}.bak"
+      cp -f "$target" "$backup"
+      if resolved="$(readlink -f "$target" 2>/dev/null)"; then :; else resolved="$target"; fi
+      info "Backed up existing $resolved → $backup"
+      {
+        printf '\n%s\n' "$SHELLFISH_SNIPPET_START"
+        printf '%s\n' "# Added by shellfish to load its Bash helpers."
+        printf '%s\n' "if [ -f \"$snippet_file\" ]; then"
+        printf '%s\n' "  . \"$snippet_file\""
+        printf '%s\n\n' "$SHELLFISH_SNIPPET_END"
+      } >> "$target"
+      info "Appended Shellfish snippet to $target"
+    fi
+  else
+    cat <<EOF > "$target"
+# ~/.bashrc
+# Created by shellfish on $TIMESTAMP
+
+$SHELLFISH_SNIPPET_START
+# Added by shellfish to load its Bash helpers.
+if [ -f "$snippet_file" ]; then
+  . "$snippet_file"
+fi
+$SHELLFISH_SNIPPET_END
+EOF
+    chmod 0644 "$target"
+    info "Created $target with Shellfish snippet."
+  fi
+
+  record_managed_path "$target"
+}
+
 main() {
   local dry_run="n"
   if [[ "${1:-}" == "--dry-run" ]]; then
@@ -353,10 +398,10 @@ main() {
   fi
 
   if [[ "$dry_run" == "n" ]]; then
-    copy_file "$SCRIPT_DIR/bash/.bashrc" "$HOME/.bashrc" 0644
-    info "~/.bashrc replaced; original backed up."
+    copy_file "$SCRIPT_DIR/bash/.bashrc" "$SHELLFISH_BASHRC" 0644
+    ensure_bashrc_snippet
   else
-    info "Dry run: would replace ~/.bashrc with backup."
+    info "Dry run: would update Shellfish Bash helpers and ensure ~/.bashrc sources them."
   fi
 
   if [[ "$dry_run" == "n" ]]; then
