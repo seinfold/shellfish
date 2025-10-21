@@ -82,8 +82,8 @@ function __shellfish_greeting_phrase --description 'Randomized greeting line'
     set -l host (prompt_hostname)
     set -l cwd  (prompt_pwd)
 
-    set -l verbs  guarding watching protecting polishing salting hoarding babysitting wrangling syncing herding tailing grooming tracing
-    set -l nouns  loot cargo repos dotfiles processes shells screens packets logs sockets branches merges builds
+    set -l verbs  guarding watching assimilating polishing sysjacking hoarding compiling bending herding tailing 
+    set -l nouns  loot cargo repos dotfiles processes constructs agents anomalies the-matrix codes shells screens payloads protocols netghosts nanoclusters feeds packets systems sockets branches merges builds daemons kernels collection neuralnets 
 
     set -l templates \
         "shellfish is now {verb} your {noun}" \
@@ -107,9 +107,8 @@ end
 
 # ----- greeting -----
 if status is-interactive
-    # ASCII + colored dynamic phrase
     set_color --bold 06b6d4
-    echo -n '\n      __\n  ><((__o  '
+    printf '\n      __\n  ><((__o  '
     set_color --bold 14b8a6
     echo (__shellfish_greeting_phrase)
     set_color normal
