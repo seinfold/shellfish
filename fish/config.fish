@@ -1,7 +1,3 @@
-# =========================
-# shellfish: Linux-only fish config
-# =========================
-
 # ----- aliases -----
 alias ls "eza --icons"
 alias treelist "tree -a -I '.git'"
@@ -36,7 +32,7 @@ function stay
     nohup $argv > /dev/null 2>&1 < /dev/null & disown
 end
 
-# ----- greeting -----
+# ----- timing & IPs for greeting -----
 set -l NOW (date "+%Y-%m-%d %H:%M:%S")
 
 set -l LOCAL_IP "unknown"
@@ -80,21 +76,52 @@ set fish_greeting (string join ' ' \
     (set_color --bold efcf40)"E:$EXTERNAL_IP" \
     (set_color normal))
 
+# ----- random shellfish greeting -----
+function __shellfish_greeting_phrase --description 'Randomized greeting line'
+    set -l user $USER
+    set -l host (prompt_hostname)
+    set -l cwd  (prompt_pwd)
+
+    set -l verbs  guarding watching protecting polishing salting hoarding babysitting wrangling syncing herding tailing grooming tracing
+    set -l nouns  loot cargo repos dotfiles processes shells screens packets logs sockets branches merges builds
+
+    set -l templates \
+        "shellfish is now {verb} your {noun}" \
+        "ahoy {user}@{host} — {verb} your {noun}" \
+        "{user}, {verb} your {noun} in {cwd}" \
+        "crew ready on {host}; {verb} your {noun}" \
+        "{verb} your {noun}, {user}"
+
+    set -l v (random 1 (count $verbs))
+    set -l n (random 1 (count $nouns))
+    set -l t (random 1 (count $templates))
+
+    set -l phrase $templates[$t]
+    set phrase (string replace -a '{user}' $user -- $phrase)
+    set phrase (string replace -a '{host}' $host -- $phrase)
+    set phrase (string replace -a '{cwd}'  $cwd  -- $phrase)
+    set phrase (string replace -a '{verb}' $verbs[$v] -- $phrase)
+    set phrase (string replace -a '{noun}' $nouns[$n] -- $phrase)
+    echo $phrase
+end
+
+# ----- greeting -----
 if status is-interactive
-    printf '\n      __\n  ><((__o  shellfish is now guarding your loot\n\n'
+    # ASCII + colored dynamic phrase
+    set_color --bold 06b6d4
+    echo -n '\n      __\n  ><((__o  '
+    set_color --bold 14b8a6
+    echo (__shellfish_greeting_phrase)
+    set_color normal
+    echo
 end
 
 # ----- key bindings -----
 function fish_user_key_bindings
     fish_vi_key_bindings
-    # Map 'kj' to behave like <Esc> (leave insert mode)
+    # Map 'kj' to escape from insert mode
     bind -M insert kj 'set fish_bind_mode default; commandline -f repaint'
 end
-
-# UNCOMMENT FOR RIGHT PROMPT
-# function fish_right_prompt
-#     echo (set_color 71717a)"$USER"@(prompt_hostname)
-# end
 
 # ----- vi mode indicator (left of prompt) -----
 function fish_mode_prompt
@@ -149,7 +176,7 @@ end
 
 # ----- env -----
 set -gx EDITOR vim
-# Force XCB only under X11; Wayland users usually shouldn’t set this.
+# Force XCB only under X11; Wayland users usually don’t need this.
 if test "$XDG_SESSION_TYPE" = "x11"
     set -gx QT_QPA_PLATFORM xcb
 end
