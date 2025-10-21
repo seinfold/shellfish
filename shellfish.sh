@@ -22,15 +22,12 @@ declare -a MANAGED_PATHS=()
 DEFAULT_PATHS=(
   "$HOME/.config/fish/config.fish"
   "$HOME/.config/fish/functions/gitget.fish"
-  "$HOME/.config/fish/functions/repo_fuse.fish"
   "$HOME/.config/fish/functions/gameserver.fish"
   "$HOME/.config/fish/functions/scr.fish"
   "$HOME/.config/fish/functions/screens.fish"
-  "$HOME/.config/fish/conf.d/repo_fuse.fish"
   "$HOME/.config/fish/conf.d/fnm.fish"
   "$HOME/.config/fish/conf.d/rustup.fish"
   "$HOME/.config/fish/completions/bun.fish"
-  "$HOME/.config/fish/repos/catalog.toml"
   "$HOME/.bashrc"
   "$SHELLFISH_BASHRC"
   "$HOME/.ssh/config"
@@ -319,7 +316,6 @@ main() {
   local use_github; use_github="$(normalize_answer "$answer")"
 
   echo
-  echo "Shellfish ships GNU screen by default; optionally add irssi for chat."
   local install_irc="n"
   read -rp "Install irssi (IRC client)? [Y/n] " answer
   install_irc="$(normalize_answer "$answer")"
@@ -367,20 +363,16 @@ main() {
   fi
 
   if [[ "$dry_run" == "n" ]]; then
-    mkdir -p "$HOME/.config/fish"/{functions,conf.d,completions,repos}
-    mkdir -p "$HOME/.local/share/repo-fuse/logs"
+    mkdir -p "$HOME/.config/fish"/{functions,conf.d,completions}
 
     copy_file "$SCRIPT_DIR/fish/config.fish" "$HOME/.config/fish/config.fish"
     copy_file "$SCRIPT_DIR/fish/functions/gitget.fish" "$HOME/.config/fish/functions/gitget.fish"
-    copy_file "$SCRIPT_DIR/fish/functions/repo_fuse.fish" "$HOME/.config/fish/functions/repo_fuse.fish"
     copy_file "$SCRIPT_DIR/fish/functions/gameserver.fish" "$HOME/.config/fish/functions/gameserver.fish"
     copy_file "$SCRIPT_DIR/fish/functions/scr.fish" "$HOME/.config/fish/functions/scr.fish"
     copy_file "$SCRIPT_DIR/fish/functions/screens.fish" "$HOME/.config/fish/functions/screens.fish"
-    copy_file "$SCRIPT_DIR/fish/conf.d/repo_fuse.fish" "$HOME/.config/fish/conf.d/repo_fuse.fish"
     copy_file "$SCRIPT_DIR/fish/conf.d/fnm.fish" "$HOME/.config/fish/conf.d/fnm.fish"
     copy_file "$SCRIPT_DIR/fish/conf.d/rustup.fish" "$HOME/.config/fish/conf.d/rustup.fish"
     copy_file "$SCRIPT_DIR/fish/completions/bun.fish" "$HOME/.config/fish/completions/bun.fish"
-    copy_file "$SCRIPT_DIR/fish/repos/catalog.toml" "$HOME/.config/fish/repos/catalog.toml"
   else
     info "Dry run: would copy Fish configuration files."
   fi
@@ -427,13 +419,10 @@ main() {
     if [[ -n "${github_user:-}" ]]; then
       if [[ "$dry_run" == "n" ]]; then
         command -v fish >/dev/null 2>&1 && {
-          fish -c 'set -Ux GITGET_GITHUB_USER $argv[1]; set -Ux REPO_FUSE_GITHUB_USER $argv[1]' -- "$github_user" || true
+          fish -c 'set -Ux GITGET_GITHUB_USER $argv[1]' -- "$github_user" || true
         }
-        if [[ -f "$HOME/.config/fish/repos/catalog.toml" ]]; then
-          sed -i "s/your-github-username/$github_user/g" "$HOME/.config/fish/repos/catalog.toml" || true
-        fi
       else
-        info "Dry run: would set Fish universal GitHub vars to '$github_user'."
+        info "Dry run: would set Fish universal GitHub user to '$github_user'."
       fi
     else
       warn "Skipped setting GitHub username."
@@ -574,14 +563,11 @@ main() {
     echo "  • If you generated a key: cat ~/.ssh/id_ed25519_github.pub → GitHub Settings → SSH and GPG keys."
     echo "  • Run: gh auth login --hostname github.com --git-protocol ssh --web"
   else
-    echo "  • (Optional) Configure GitHub later: fish -c 'set -Ux REPO_FUSE_GITHUB_USER <username>'"
+    echo "  • (Optional) Configure GitHub later: fish -c 'set -Ux GITGET_GITHUB_USER <username>'"
   fi
-  echo "  • Review ~/.config/fish/repos/catalog.toml and replace sample entries with your projects."
   echo "  • Open a new Fish terminal and try:"
   echo "       gitget --list"
   echo "       gitget --pick"
-  echo "       gf --list"
-  echo "       repo_fuse --source github --list"
   echo "       screens / scr"
   echo "  • Optionally install extra tooling (bun, nodejs, build-essential, Docker, VS Code, …)."
 

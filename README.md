@@ -25,7 +25,7 @@ Shellfish tunes your Debian/Ubuntu terminal in minutes. One guided session insta
 | **git** | Version control CLI used by Shellfish helpers |
 | **curl** | HTTP utility used during setup and scripting |
 | **wget** | Alternate download utility for environments without curl |
-| **python3** | Runtime for repo_fuse/gitget helper scripts |
+| **python3** | Runtime for gitget helper script |
 | **GNU screen** | Terminal multiplexer keeping long-running sessions alive |
 | **irssi** *(optional)* | IRC client you can run inside screen |
 | **gh** *(optional)* | GitHub CLI for quick repo listing and SSH auth checks |
@@ -48,13 +48,6 @@ Quick reminders for the helpers Shellfish installs:
   gg 3                   # clone the third entry
   ```
 
-- **`gf` / `rf` → `repo_fuse`** – curated clone + setup.
-  ```fish
-  gf --list              # manifest entries
-  gf sample-service      # clone + run setup steps
-  gf --source github     # switch to live GitHub listing
-  ```
-  
 - **`scr` / `screens`** – easy managing of GNU screen sessions.
   ```fish
   scr NAME               # opens screen NAME - use for game consoles / irc / development servers
@@ -84,35 +77,11 @@ chmod +x shellfish.sh
 
 ### Optional installs
 
-1. **GitHub support** – configure `gitget`/`repo_fuse` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
+1. **GitHub support** – configure `gitget` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`.
 1. **irssi** – choose whether to install the IRC client; if enabled you can pick a default network (ircnet/libera/oftc/efnet/custom).
 1. **SSH shortcuts** – import the sample `~/.ssh/config` and add aliases like `ssh prod`.
 
 Shellfish automatically replaces your `~/.bashrc` - but don't worry it will create backups that you can revert to by just running the script again.
-
----
-
-## Catalog vs GitHub mode (repo_fuse & gitget)
-
-Shellfish ships with an example catalog at `~/.config/fish/repos/catalog.toml`, but **you can just leave it as it is if needed**. repo_fuse and gitget work three ways:
-
-1. **GitHub mode (default during setup)** – Shellfish wires `gitget` + `repo_fuse` to your GitHub account via the `gh` CLI. Running `gitget --list` or `repo_fuse --source github --list` pulls live repositories without touching the catalog.
-2. **Catalog mode** – edit `catalog.toml` when you want extra automation (setup commands, descriptions, grouping). Each `[[repo]]` block contains `name`, `url`, optional `branch`, and optional `setup` array. repo_fuse reads those entries when you run `repo_fuse --manifest ~/.config/fish/repos/catalog.toml` (or simply `repo_fuse` if you keep the defaults).
-3. **Mix and match** – keep the catalog for curated projects while still using GitHub mode for everything else (`repo_fuse --source github` or `gf --list` after choosing GitHub mode).
-
-Example catalog entry:
-```toml
-[[repo]]
-name = "blog"
-description = "Astro personal site"
-url = "git@github.com:seinfold/blog.git"
-setup = [
-  "pnpm install",
-  "pnpm dev -- --open"
-]
-```
-
-When you run `repo_fuse blog`, Shellfish clones the repo, runs the `setup` commands, logs the run, and records history. If you prefer GitHub mode, `repo_fuse --source github` (or the GitHub option during the menu) bypasses the catalog entirely.
 
 ---
 
@@ -131,12 +100,16 @@ When you run `repo_fuse blog`, Shellfish clones the repo, runs the `setup` comma
 
 3. **Open a fresh Fish terminal**
 
+4. **Set a default GitHub user for gitget** (if you skipped it during setup):
+   ```bash
+   fish -c 'set -Ux GITGET_GITHUB_USER <username>'
+   ```
+
 
 ---
 
 ## Optional follow-ups
 
-- Replace the manifest entries in `~/.config/fish/repos/catalog.toml` with your real projects (if you want curated automation).
 - Customize `~/.config/fish/functions/gameserver.fish` with your favourite SSH shortcuts so you can connect to different server with just single word.
 - Bind `Ctrl+S` to the screen list: `bind \cs 'screens\n'` in `config.fish`.
 

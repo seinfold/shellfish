@@ -17,8 +17,6 @@ function gitget -d "List or clone your GitHub repos quickly"
     set -l user
     if set -q GITGET_GITHUB_USER
         set user $GITGET_GITHUB_USER
-    else if set -q REPO_FUSE_GITHUB_USER
-        set user $REPO_FUSE_GITHUB_USER
     else
         set user (gh api user --jq .login 2>/dev/null)
         if test -z "$user"
