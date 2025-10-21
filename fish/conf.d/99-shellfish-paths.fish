@@ -9,11 +9,15 @@ set -l shellfish_user_paths \
     "$HOME/.bun/bin" \
     "$HOME/.dotnet/tools" \
     "$HOME/.pyenv/shims" \
-    "$HOME/bin"
+    "$HOME/.config/composer/vendor/bin" \
+    "$HOME/bin" \
+    "$HOME/.local/share/flatpak/exports/bin"
 
 set -l shellfish_system_paths \
     /usr/local/bin \
-    /usr/local/sbin
+    /usr/local/sbin \
+    /snap/bin \
+    /var/lib/flatpak/exports/bin
 
 for dir in $shellfish_user_paths $shellfish_system_paths
     if test -d "$dir"
