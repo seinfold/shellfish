@@ -14,7 +14,7 @@ function scr --description 'create/attach a GNU screen session by name, with opt
 
     set -l cmd "screen -S '$name' -D -RR"
     if test $want_log -eq 1
-        set -l dir ~/Documents/logs
+        set -l dir "$HOME/Documents/logs"
         mkdir -p $dir
         set -l ts (date "+%Y%m%d-%H%M%S")
         set -l file "$dir/$name-$ts.log"
@@ -22,10 +22,14 @@ function scr --description 'create/attach a GNU screen session by name, with opt
     end
 
     if type -q gnome-terminal
-        command gnome-terminal -- bash -lc "$cmd"
+        # Title the window with the screen session name
+        command gnome-terminal --title="$name" -- bash -lc "$cmd"
     else if type -q xterm
-        command xterm -e $cmd
+        # -T sets the xterm title
+        command xterm -T "$name" -e $cmd
     else
+        # Fallback: set current terminal title, then run screen here
+        printf '\033]0;%s\007' "$name"
         command screen -S $name -D -RR
     end
 end
