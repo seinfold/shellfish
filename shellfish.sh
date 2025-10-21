@@ -22,7 +22,7 @@ declare -a MANAGED_PATHS=()
 DEFAULT_PATHS=(
   "$HOME/.config/fish/config.fish"
   "$HOME/.config/fish/functions/gitget.fish"
-  "$HOME/.config/fish/functions/gameserver.fish"
+  "$HOME/.config/fish/functions/ssh_shortcuts.fish"
   "$HOME/.config/fish/functions/scr.fish"
   "$HOME/.config/fish/functions/screens.fish"
   "$HOME/.config/fish/conf.d/fnm.fish"
@@ -315,14 +315,107 @@ main() {
   read -rp "Do you use GitHub for development? [Y/n] " answer
   local use_github; use_github="$(normalize_answer "$answer")"
 
+  local ssh_config="$HOME/.ssh/config"
+  local key_path="$HOME/.ssh/id_ed25519_github"
+
+  if [[ "$use_github" == "y" ]]; then
+    echo
+    echo "GitHub helper setup (type 'abort' at any prompt to skip the remaining steps)."
+    local github_abort=0
+    local abort_token="abort"
+    local github_user_input=""
+    read -rp "GitHub username (leave blank to detect via 'gh api'): " github_user_input
+    if [[ "${github_user_input,,}" == "$abort_token" ]]; then
+      github_abort=1
+      info "Skipping GitHub configuration."
+    else
+      local github_user="${github_user_input//[[:space:]]/}"
+      if [[ -n "$github_user" ]]; then
+        if [[ "$dry_run" == "n" ]]; then
+          if command -v fish >/dev/null 2>&1; then
+            if fish -c 'set -Ux GITGET_GITHUB_USER $argv[1]' -- "$github_user"; then
+              info "Stored GitHub username '$github_user' for gitget."
+            else
+              warn "Could not persist GITGET_GITHUB_USER via fish. Set it manually later."
+            fi
+          else
+            warn "fish executable not found; set GITGET_GITHUB_USER manually later."
+          fi
+        else
+          info "Dry run: would run 'fish -c \"set -Ux GITGET_GITHUB_USER $github_user\"'."
+        fi
+      else
+        info "Leaving GitHub username unset; gitget will query GitHub CLI when needed."
+      fi
+    fi
+
+    if (( github_abort == 0 )); then
+      echo
+      echo "GitHub requires SSH access for repo cloning."
+      read -rp "Prepare GitHub SSH setup now? [Y/n] " github_ssh_prepare
+      if [[ "${github_ssh_prepare,,}" == "$abort_token" ]]; then
+        github_abort=1
+        info "Skipping remaining GitHub configuration."
+      elif [[ "$(normalize_answer "$github_ssh_prepare")" == "y" ]]; then
+        if [[ -f "$SCRIPT_DIR/ssh/config" ]]; then
+          if [[ "$dry_run" == "n" ]]; then
+            mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+            copy_file "$SCRIPT_DIR/ssh/config" "$ssh_config" 0600
+          else
+            info "Dry run: would install sample ~/.ssh/config tuned for GitHub."
+          fi
+        fi
+      else
+        info "Skipped GitHub SSH helper configuration."
+      fi
+    fi
+
+    if (( github_abort == 0 )); then
+      if [[ ! -f "$key_path" ]]; then
+        echo
+        read -rp "Generate GitHub SSH key at $key_path? [y/N] " generate_key
+        if [[ "${generate_key,,}" == "$abort_token" ]]; then
+          github_abort=1
+          info "Skipping remaining GitHub configuration."
+        elif [[ "$(normalize_answer "$generate_key")" == "y" ]]; then
+          read -rp "SSH key comment [$USER@github]: " key_comment
+          if [[ "${key_comment,,}" == "$abort_token" ]]; then
+            github_abort=1
+            info "Skipping remaining GitHub configuration."
+          else
+            key_comment="${key_comment:-$USER@github}"
+            if [[ "$dry_run" == "n" ]]; then
+              mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
+              ssh-keygen -t ed25519 -f "$key_path" -C "$key_comment" -N ""
+              info "Generated SSH key. Add the public key to GitHub."
+            else
+              info "Dry run: would generate $key_path with comment '$key_comment'."
+            fi
+          fi
+        else
+          info "Skipped SSH key generation."
+        fi
+      else
+        info "Existing $key_path key found."
+      fi
+    fi
+
+    if (( github_abort == 0 )) && [[ -f "$key_path" ]]; then
+      if [[ "$dry_run" == "n" ]]; then
+        start_ssh_agent_if_needed
+        ssh-add "$key_path" || warn "Could not add SSH key to agent."
+      else
+        info "Dry run: would add $key_path to ssh-agent."
+      fi
+    fi
+  else
+    info "Skipping GitHub configuration."
+  fi
+
   echo
   local install_irc="n"
   read -rp "Install irssi (IRC client)? [Y/n] " answer
   install_irc="$(normalize_answer "$answer")"
-
-  echo
-  echo "JetBrainsMono Nerd Font is required for icons and will be installed automatically."
-  local install_font="y"
 
   local irc_network="ircnet"
   if [[ "$install_irc" == "y" ]]; then
@@ -358,8 +451,6 @@ main() {
 
   if [[ "$dry_run" == "n" ]]; then
     install_nerd_font || warn "JetBrainsMono Nerd Font installation encountered issues."
-  else
-    info "Dry run: would install JetBrainsMono Nerd Font to ~/.local/share/fonts."
   fi
 
   if [[ "$dry_run" == "n" ]]; then
@@ -367,7 +458,18 @@ main() {
 
     copy_file "$SCRIPT_DIR/fish/config.fish" "$HOME/.config/fish/config.fish"
     copy_file "$SCRIPT_DIR/fish/functions/gitget.fish" "$HOME/.config/fish/functions/gitget.fish"
-    copy_file "$SCRIPT_DIR/fish/functions/gameserver.fish" "$HOME/.config/fish/functions/gameserver.fish"
+    local old_shortcuts="$HOME/.config/fish/functions/gameserver.fish"
+    local new_shortcuts="$HOME/.config/fish/functions/ssh_shortcuts.fish"
+    if [[ -f "$old_shortcuts" && ! -f "$new_shortcuts" ]]; then
+      mv "$old_shortcuts" "$new_shortcuts"
+      info "Migrated existing gameserver shortcuts → ssh_shortcuts.fish"
+      record_managed_path "$new_shortcuts"
+      if [[ -f "$MANIFEST_FILE" ]]; then
+        sed -i "\|$old_shortcuts|d" "$MANIFEST_FILE" || true
+      fi
+    else
+      copy_file "$SCRIPT_DIR/fish/functions/ssh_shortcuts.fish" "$new_shortcuts"
+    fi
     copy_file "$SCRIPT_DIR/fish/functions/scr.fish" "$HOME/.config/fish/functions/scr.fish"
     copy_file "$SCRIPT_DIR/fish/functions/screens.fish" "$HOME/.config/fish/functions/screens.fish"
     copy_file "$SCRIPT_DIR/fish/conf.d/fnm.fish" "$HOME/.config/fish/conf.d/fnm.fish"
@@ -399,12 +501,10 @@ main() {
   if [[ "$dry_run" == "n" ]]; then
     mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
   fi
-  local ssh_config="$HOME/.ssh/config"
   if [[ "$dry_run" == "n" ]]; then
     [[ -f "$ssh_config" ]] || { touch "$ssh_config"; chmod 600 "$ssh_config"; }
   fi
 
-  local key_path="$HOME/.ssh/id_ed25519_github"
   local default_identity="$key_path"
   if [[ ! -f "$default_identity" ]]; then
     if [[ -f "$HOME/.ssh/id_ed25519" ]]; then default_identity="$HOME/.ssh/id_ed25519"
@@ -412,92 +512,81 @@ main() {
     fi
   fi
 
-  if [[ "$use_github" == "y" ]]; then
-    echo
-    echo "GitHub username to preconfigure helpers (optional)."
-    read -rp "GitHub username: " github_user
-    if [[ -n "${github_user:-}" ]]; then
-      if [[ "$dry_run" == "n" ]]; then
-        command -v fish >/dev/null 2>&1 && {
-          fish -c 'set -Ux GITGET_GITHUB_USER $argv[1]' -- "$github_user" || true
-        }
-      else
-        info "Dry run: would set Fish universal GitHub user to '$github_user'."
-      fi
-    else
-      warn "Skipped setting GitHub username."
-    fi
-
-    if [[ -f "$SCRIPT_DIR/ssh/config" ]]; then
-      echo
-      echo "Install example ~/.ssh/config pointing GitHub to a dedicated key?"
-      read -rp "Install example ssh config? [y/N] " install_ssh_config
-      if [[ "$(normalize_answer "$install_ssh_config")" == "y" ]]; then
-        if [[ "$dry_run" == "n" ]]; then
-          copy_file "$SCRIPT_DIR/ssh/config" "$ssh_config" 0600
-        else
-          info "Dry run: would install sample ~/.ssh/config."
-        fi
-      else
-        info "Skipped installing example ssh/config."
-      fi
-    fi
-
-    if [[ ! -f "$key_path" ]]; then
-      echo
-      echo "Create GitHub-specific SSH key?"
-      read -rp "Generate new SSH key at $key_path? [y/N] " generate_key
-      if [[ "$(normalize_answer "$generate_key")" == "y" ]]; then
-        read -rp "Email/comment to embed in the SSH key [$USER@github]: " key_comment
-        key_comment="${key_comment:-$USER@github}"
-        if [[ "$dry_run" == "n" ]]; then
-          ssh-keygen -t ed25519 -f "$key_path" -C "$key_comment" -N ""
-          info "Generated SSH key. Add the public key to GitHub."
-        else
-          info "Dry run: would generate $key_path with comment '$key_comment'."
-        fi
-      else
-        warn "Skipping SSH key generation."
-      fi
-    else
-      info "Existing $key_path key found."
-    fi
-
-    if [[ -f "$key_path" ]]; then
-      if [[ "$dry_run" == "n" ]]; then
-        start_ssh_agent_if_needed
-        ssh-add "$key_path" || warn "Could not add SSH key to agent."
-      else
-        info "Dry run: would add $key_path to ssh-agent."
-      fi
-    fi
-  else
-    warn "Skipping GitHub configuration."
-  fi
-
   echo
-  echo "SSH shortcuts are friendly aliases that you can use to connect with single word to another computer - defined in ~/.ssh/config."
+  echo "SSH shortcuts let you launch saved SSH connections; Shellfish updates ~/.ssh/config and adds Fish helpers for you."
   read -rp "Create SSH shortcuts now? [Y/n] " add_hosts_answer
   if [[ "$(normalize_answer "$add_hosts_answer")" == "y" ]]; then
-    local host_alias host_name host_user host_port host_identity
     local ssh_backup_done=0
+    local abort_token="abort"
+    local ssh_shortcuts_file="$HOME/.config/fish/functions/ssh_shortcuts.fish"
+    declare -a new_shortcuts=()
+    declare -A seen_aliases=()
+    local abort_shortcuts=0
+
     while true; do
       echo
-      read -rp "Shortcut name (alias) (leave blank to finish): " host_alias
-      [[ -z "$host_alias" ]] && break
-      if [[ "$dry_run" == "n" ]]; then
-        if grep -q "^[Hh]ost[[:space:]]\+$host_alias$" "$ssh_config" 2>/dev/null; then
-          warn "Host '$host_alias' already exists in $ssh_config. Skipping."; continue
+      echo "Enter shortcut details (type '$abort_token' at any prompt to cancel)."
+      read -rp "Shortcut alias (letters/numbers) (leave blank to finish): " host_alias
+      if [[ -z "$host_alias" ]]; then
+        break
+      fi
+      if [[ "${host_alias,,}" == "$abort_token" ]]; then
+        abort_shortcuts=1
+        break
+      fi
+      if [[ ! "$host_alias" =~ ^[A-Za-z0-9_]+$ ]]; then
+        warn "Alias must use only letters, numbers, or underscores."
+        continue
+      fi
+      local alias_key="${host_alias,,}"
+      if [[ -n "${seen_aliases[$alias_key]:-}" ]]; then
+        warn "Alias '$host_alias' already entered in this session."
+        continue
+      fi
+      if [[ "$dry_run" == "n" && -f "$ssh_config" ]]; then
+        if awk -v a="$host_alias" 'tolower($1)=="host" && tolower($2)==tolower(a){exit 0} END{exit 1}' "$ssh_config"; then
+          warn "Host '$host_alias' already exists in $ssh_config. Skipping."
+          continue
         fi
       fi
-      read -rp "Hostname or IP (e.g., server.example.com): " host_name
-      [[ -z "$host_name" ]] && { warn "Hostname cannot be empty."; continue; }
+
+      read -rp "Server hostname or IP: " host_name
+      if [[ "${host_name,,}" == "$abort_token" ]]; then
+        abort_shortcuts=1
+        break
+      fi
+      if [[ -z "$host_name" ]]; then
+        warn "Hostname cannot be empty."
+        continue
+      fi
+
       read -rp "SSH username [$USER]: " host_user
+      if [[ "${host_user,,}" == "$abort_token" ]]; then
+        abort_shortcuts=1
+        break
+      fi
       host_user="${host_user:-$USER}"
+
       read -rp "Port [22]: " host_port
+      if [[ "${host_port,,}" == "$abort_token" ]]; then
+        abort_shortcuts=1
+        break
+      fi
       host_port="${host_port:-22}"
+      if [[ ! "$host_port" =~ ^[0-9]+$ ]]; then
+        warn "Port must be numeric."
+        continue
+      fi
+
       read -rp "Identity file [$default_identity]: " host_identity
+      if [[ "${host_identity,,}" == "$abort_token" ]]; then
+        abort_shortcuts=1
+        break
+      fi
       host_identity="${host_identity:-$default_identity}"
+
+      seen_aliases[$alias_key]=1
+      new_shortcuts+=( "$host_alias|$host_name|$host_user|$host_port|$host_identity" )
 
       if [[ "$dry_run" == "n" ]]; then
         if [[ $ssh_backup_done -eq 0 && -f "$ssh_config" ]]; then
@@ -524,7 +613,65 @@ main() {
       else
         info "Dry run: would append host '$host_alias' to $ssh_config."
       fi
+
+      read -rp "Add another shortcut? [y/N]: " add_another_answer
+      if [[ "${add_another_answer,,}" == "$abort_token" ]]; then
+        abort_shortcuts=1
+        break
+      fi
+      [[ "$(normalize_answer "$add_another_answer")" == "y" ]] || break
     done
+
+    if (( abort_shortcuts )); then
+      if ((${#new_shortcuts[@]} == 0)); then
+        info "Aborted SSH shortcut setup. No changes made."
+      else
+        info "Stopped collecting additional shortcuts."
+      fi
+    fi
+
+    if ((${#new_shortcuts[@]} > 0)); then
+      if [[ "$dry_run" == "n" ]]; then
+        local tmp_ssh_shortcuts
+        tmp_ssh_shortcuts="$(mktemp)"
+        if [[ -f "$ssh_shortcuts_file" ]]; then
+          if ! grep -Eq "Customize (gameserver|ssh_shortcuts).fish" "$ssh_shortcuts_file"; then
+            cat "$ssh_shortcuts_file" > "$tmp_ssh_shortcuts"
+            if [[ $(tail -c1 "$ssh_shortcuts_file" 2>/dev/null) != $'\n' ]]; then
+              printf "\n" >> "$tmp_ssh_shortcuts"
+            fi
+            printf "\n" >> "$tmp_ssh_shortcuts"
+          fi
+        fi
+        printf "# Added by shellfish on %s\n\n" "$(date '+%Y-%m-%d %H:%M:%S')" >> "$tmp_ssh_shortcuts"
+        for entry in "${new_shortcuts[@]}"; do
+          IFS='|' read -r alias name user port identity <<< "$entry"
+          local upper_alias="${alias^^}"
+          printf "function %s --wraps \"ssh %s\" --description 'SSH to %s as %s'\n" "$alias" "$alias" "$name" "$user" >> "$tmp_ssh_shortcuts"
+          printf "    ssh %s \$argv\n" "$alias" >> "$tmp_ssh_shortcuts"
+          printf "end\n\n" >> "$tmp_ssh_shortcuts"
+          if [[ "$upper_alias" != "$alias" ]]; then
+            printf "function %s --wraps %s --description 'SSH to %s as %s'\n" "$upper_alias" "$alias" "$name" "$user" >> "$tmp_ssh_shortcuts"
+            printf "    %s \$argv\n" "$alias" >> "$tmp_ssh_shortcuts"
+            printf "end\n\n" >> "$tmp_ssh_shortcuts"
+          fi
+        done
+        install -m 0644 "$tmp_ssh_shortcuts" "$ssh_shortcuts_file"
+        rm -f "$tmp_ssh_shortcuts"
+        info "Updated $ssh_shortcuts_file with SSH helpers."
+        record_managed_path "$ssh_shortcuts_file"
+      else
+        info "Dry run: would generate $ssh_shortcuts_file with functions:"
+        for entry in "${new_shortcuts[@]}"; do
+          IFS='|' read -r alias name user port identity <<< "$entry"
+          info "  • function $alias → ssh $alias"
+          local upper_alias="${alias^^}"
+          if [[ "$upper_alias" != "$alias" ]]; then
+            info "  • function $upper_alias → $alias"
+          fi
+        done
+      fi
+    fi
   fi
 
   if [[ "$use_github" == "y" ]]; then
@@ -560,19 +707,14 @@ main() {
   echo
   echo "Next steps:"
   if [[ "$use_github" == "y" ]]; then
-    echo "  • If you generated a key: cat ~/.ssh/id_ed25519_github.pub → GitHub Settings → SSH and GPG keys."
-    echo "  • Run: gh auth login --hostname github.com --git-protocol ssh --web"
+    echo "  • Copy ~/.ssh/id_ed25519_github.pub → GitHub → Settings → SSH and GPG keys."
+    echo "  • Run 'gh auth login --hostname github.com --git-protocol ssh --web' to finish CLI auth."
   else
-    echo "  • (Optional) Configure GitHub later: fish -c 'set -Ux GITGET_GITHUB_USER <username>'"
+    echo "  • (Optional) Set a gitget default user anytime: fish -c 'set -Ux GITGET_GITHUB_USER <username>'"
   fi
-  echo "  • Open a new Fish terminal and try:"
-  echo "       gitget --list"
-  echo "       gitget --pick"
-  echo "       screens / scr"
-  echo "  • Optionally install extra tooling (bun, nodejs, build-essential, Docker, VS Code, …)."
-
-  printf "\n%s\n" "$SHELLFISH_ASCII"
-  info "Shellfish v${SHELLFISH_VERSION} complete."
+  echo "  • Open a new Fish session and explore gitget --list or gitget --pick when you're ready."
+  echo
+  echo "Enjoy your Shellfish ><((°>"
 
   if [[ "$dry_run" == "n" ]]; then
     read -rp "Remove the installer directory $(pwd) now? [y/N] " cleanup

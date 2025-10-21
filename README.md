@@ -77,18 +77,9 @@ chmod +x shellfish.sh
 
 ### Optional installs
 
-1. **GitHub support** – configure `gitget` with your username, optionally generate `~/.ssh/id_ed25519_github`, and remind you to run `gh auth login`. `gitget` can be used to list all your GitHub repositories easily and clone any of them to your computer.
+1. **GitHub support** – guided prompts store your GitHub username for `gitget`, optionally install a sample `~/.ssh/config`, and create `~/.ssh/id_ed25519_github`; type `abort` anytime to skip and remember to run `gh auth login`.
 1. **irssi** – choose whether to install the IRC client; if enabled you can pick a default network (ircnet/libera/oftc/efnet/custom).
-1. **SSH shortcuts** – add aliases like `devserver` or `DEVSERVER` to immediately SSH to that server from your terminal.
-   ```bash
-    function devserver --description ' SSH into the Development Server '
-        ssh -p 22 user@127.0.0.1 $argv
-    end
-    
-    function DEVSERVER --description ' SSH into the Development server '
-        devserver $argv
-    end
-   ```
+1. **SSH shortcuts** – guided prompts capture alias/server/user/port (type `abort` to skip), update `~/.ssh/config`, and generate matching lowercase/uppercase Fish helpers in `~/.config/fish/functions/ssh_shortcuts.fish`.
 
 
 Shellfish automatically replaces your `~/.bashrc` - but don't worry it will create backups that you can revert to by just running the script again.
@@ -120,7 +111,7 @@ Shellfish automatically replaces your `~/.bashrc` - but don't worry it will crea
 
 ## Optional follow-ups
 
-- Customize `~/.config/fish/functions/gameserver.fish` with your favourite SSH shortcuts so you can connect to different server with just single word.
+- Tweak the generated `~/.config/fish/functions/ssh_shortcuts.fish` entries anytime or rerun the installer to add more shortcuts.
 - Bind `Ctrl+S` to the screen list: `bind \cs 'screens\n'` in `config.fish`.
 
 ## Backups

@@ -2,6 +2,12 @@
 alias ls "eza --icons"
 alias treelist "tree -a -I '.git'"
 
+# ----- ssh shortcuts -----
+set -l __shellfish_ssh_shortcuts "$HOME/.config/fish/functions/ssh_shortcuts.fish"
+if test -f $__shellfish_ssh_shortcuts
+    source $__shellfish_ssh_shortcuts
+end
+
 # ----- IRC helper (GNU screen + irssi) -----
 function irc
     if not type -q screen
