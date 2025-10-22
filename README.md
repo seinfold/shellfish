@@ -105,7 +105,7 @@ Shellfish automatically replaces your `~/.bashrc` - but don't worry it will crea
    ```bash
    fish -c 'set -Ux GITGET_GITHUB_USER <username>'
    ```
-¤¤ Current known risks and problems
+## Current known risks and problems
 
 1. **Bash path linkings to installed apt packages might have inconsistencies** - Under repair, this basically means that you might need to re-install some tool via apt so that they work with Fish terminal
 2. **Installer doesn't fully uninstall** - if you run the installer again to revert changes, it will still leave all installed packages. Check /documents for User Guide that has single command to run to remove all installed packages, modify it so that you wont remove anything you already had
